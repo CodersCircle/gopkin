@@ -1,0 +1,37 @@
+# Gopkin Website Hosting Rules (Apache / LiteSpeed)
+Options -Indexes
+DirectoryIndex public_html/index.html index.html
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Block direct HTTP access to Git metadata and Go source/module files
+    RewriteRule (^|/)\.git(/|$) - [F,L]
+    RewriteRule \.(go|gpk)$ - [F,L]
+    RewriteRule ^go\.(mod|sum)$ - [F,L]
+
+    # Serve website root and documentation from public_html/
+    RewriteRule ^$ public_html/index.html [L]
+    RewriteRule ^index\.html$ public_html/index.html [L]
+    RewriteRule ^docs/?$ public_html/docs.html [L]
+    RewriteRule ^docs\.html$ public_html/docs.html [L]
+
+    # Serve 1-line installers cleanly from site root
+    RewriteRule ^install\.ps1$ public_html/install.ps1 [L]
+    RewriteRule ^install\.sh$ public_html/install.sh [L]
+</IfModule>
+
+# Defense-in-depth file protection even if mod_rewrite is unavailable
+<FilesMatch "(^\.git|\.go$|\.gpk$|^go\.(mod|sum)$)">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+<IfModule mod_mime.c>
+    AddType text/plain;charset=utf-8 .sh .ps1
+</IfModule>
