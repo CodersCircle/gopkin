@@ -132,3 +132,41 @@ func xmlEscape(s string) string {
 	)
 	return r.Replace(s)
 }
+
+// GenerateBOSSDesktopEntry generates a Debian/BOSS Linux freedesktop .desktop
+// launcher file for Bharat Operating System Solutions (BOSS).
+func GenerateBOSSDesktopEntry(m Manifest, binaryName string) string {
+	bin := strings.TrimSpace(binaryName)
+	if bin == "" {
+		bin = sanitizeAppIDSegment(m.Name)
+	}
+	var b strings.Builder
+	b.WriteString("[Desktop Entry]\n")
+	b.WriteString("Type=Application\n")
+	b.WriteString("Version=" + fallbackVersion(m.Version) + "\n")
+	b.WriteString("Name=" + m.Name + "\n")
+	b.WriteString("Comment=" + m.Name + " — Built with Gopkin for BOSS Linux\n")
+	b.WriteString("Exec=/usr/local/bin/" + bin + "\n")
+	b.WriteString("Terminal=false\n")
+	b.WriteString("Categories=Utility;Application;\n")
+	return b.String()
+}
+
+// GenerateBOSSDebianControl generates a DEBIAN/control package metadata file
+// compatible with BOSS (Bharat Operating System Solutions) / Debian dpkg.
+func GenerateBOSSDebianControl(m Manifest, packageName string) string {
+	pkg := strings.ToLower(strings.TrimSpace(packageName))
+	if pkg == "" {
+		pkg = sanitizeAppIDSegment(m.Name)
+	}
+	var b strings.Builder
+	b.WriteString("Package: " + pkg + "\n")
+	b.WriteString("Version: " + fallbackVersion(m.Version) + "\n")
+	b.WriteString("Section: utils\n")
+	b.WriteString("Priority: optional\n")
+	b.WriteString("Architecture: amd64\n")
+	b.WriteString("Maintainer: " + m.Name + " Maintainers <noreply@" + m.ID + ">\n")
+	b.WriteString("Description: " + m.Name + " (Gopkin Pure-Go Application for BOSS Linux)\n")
+	b.WriteString(" Static zero-CGO application packaged for Bharat Operating System Solutions.\n")
+	return b.String()
+}

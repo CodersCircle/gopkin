@@ -55,8 +55,10 @@ func ParseTarget(raw string) (TargetSpec, error) {
 		return TargetSpec{Name: "ios", GOOS: "ios", GOARCH: "arm64"}, nil
 	case "iot":
 		return TargetSpec{Name: "iot", GOOS: "linux", GOARCH: "arm64"}, nil
+	case "boss", "bos":
+		return TargetSpec{Name: "boss", GOOS: "linux", GOARCH: "amd64"}, nil
 	default:
-		return TargetSpec{}, fmt.Errorf("unsupported target %q (supported: desktop, windows, darwin, linux, web, android, ios, iot)", raw)
+		return TargetSpec{}, fmt.Errorf("unsupported target %q (supported: desktop, windows, darwin, linux, web, android, ios, iot, boss)", raw)
 	}
 }
 
@@ -210,9 +212,76 @@ func BuildProject(projectDir string, target TargetSpec) (BuildResult, error) {
 		if err := buildWebBundle(ctx, outDir, &res); err != nil {
 			return res, err
 		}
+
+	case "boss":
+		if err := buildBOSSPackage(ctx, outDir, &res); err != nil {
+			return res, err
+		}
 	}
 
 	return res, nil
+}
+
+func buildBOSSPackage(ctx ProjectContext, outDir string, res *BuildResult) error {
+	pkgName := strings.ToLower(strings.ReplaceAll(strings.TrimSpace(ctx.Manifest.Name), " ", "-"))
+	if pkgName == "" {
+		pkgName = "gopkin-app"
+	}
+
+	// Stage a clean zero-CGO static Linux amd64 source package and cross-compile it.
+	stageDir := filepath.Join(outDir, ".stage")
+	if err := os.MkdirAll(stageDir, 0o755); err != nil {
+		return fmt.Errorf("create boss stage dir: %w", err)
+	}
+	defer os.RemoveAll(stageDir)
+
+	if err := os.WriteFile(filepath.Join(stageDir, "go.mod"), []byte("module gopkin_boss_app\n\ngo 1.22\n"), 0o644); err != nil {
+		return fmt.Errorf("write boss stage go.mod: %w", err)
+	}
+	src := fmt.Sprintf(`package main
+
+import "fmt"
+
+func main() {
+	fmt.Println(%q)
+}
+`, ctx.Manifest.Name+" ("+ctx.Manifest.ID+") — BOSS Linux")
+	if err := os.WriteFile(filepath.Join(stageDir, "main.go"), []byte(src), 0o644); err != nil {
+		return fmt.Errorf("write boss stage main.go: %w", err)
+	}
+
+	binPath := filepath.Join(outDir, pkgName)
+	cmd := exec.Command("go", "build", "-o", binPath, ".")
+	cmd.Dir = stageDir
+	cmd.Env = append(os.Environ(), "CGO_ENABLED=0", "GOOS=linux", "GOARCH=amd64")
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("cross-compile BOSS linux/amd64 binary: %w\n%s", err, string(out))
+	}
+	res.Artifacts = append(res.Artifacts, binPath)
+
+	// Generate .desktop launcher file.
+	desktopPath := filepath.Join(outDir, pkgName+".desktop")
+	desktopContent := config.GenerateBOSSDesktopEntry(ctx.Manifest, pkgName)
+	if err := os.WriteFile(desktopPath, []byte(desktopContent), 0o644); err != nil {
+		return fmt.Errorf("write BOSS .desktop file: %w", err)
+	}
+	res.GeneratedManifests = append(res.GeneratedManifests, desktopPath)
+	res.Artifacts = append(res.Artifacts, desktopPath)
+
+	// Generate DEBIAN/control metadata file.
+	debianDir := filepath.Join(outDir, "DEBIAN")
+	if err := os.MkdirAll(debianDir, 0o755); err != nil {
+		return fmt.Errorf("create DEBIAN dir: %w", err)
+	}
+	controlPath := filepath.Join(debianDir, "control")
+	controlContent := config.GenerateBOSSDebianControl(ctx.Manifest, pkgName)
+	if err := os.WriteFile(controlPath, []byte(controlContent), 0o644); err != nil {
+		return fmt.Errorf("write DEBIAN/control: %w", err)
+	}
+	res.GeneratedManifests = append(res.GeneratedManifests, controlPath)
+	res.Artifacts = append(res.Artifacts, controlPath)
+
+	return nil
 }
 
 func buildWebBundle(ctx ProjectContext, outDir string, res *BuildResult) error {
@@ -365,7 +434,7 @@ func parseTargetFlags(cmdName string, args []string, stderr io.Writer) (TargetSp
 
 	var targetFlag string
 	var port int
-	fs.StringVar(&targetFlag, "target", "desktop", "target platform (desktop, windows, darwin, linux, web, android, ios, iot)")
+	fs.StringVar(&targetFlag, "target", "desktop", "target platform (desktop, windows, darwin, linux, web, android, ios, iot, boss)")
 	fs.StringVar(&targetFlag, "t", "desktop", "shorthand for --target")
 	fs.IntVar(&port, "port", 8080, "HTTP port for web target (default 8080)")
 
@@ -464,7 +533,7 @@ func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "  gopkin run [-t|--target <target>] [dir]       Run a Gopkin app for the selected target")
 	fmt.Fprintln(w, "  gopkin build [-t|--target <target>] [dir]     Build a Gopkin app and generate native manifests")
 	fmt.Fprintln(w, "")
-	fmt.Fprintln(w, "Targets: desktop (default), windows, darwin, linux, web, android, ios, iot")
+	fmt.Fprintln(w, "Targets: desktop (default), windows, darwin, linux, web, android, ios, iot, boss (bos)")
 }
 
 func main() {

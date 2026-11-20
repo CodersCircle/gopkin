@@ -79,6 +79,8 @@ func TestParseTargetAllSupportedPlatforms(t *testing.T) {
 		{"android", "android", "android", "arm64"},
 		{"ios", "ios", "ios", "arm64"},
 		{"iot", "iot", "linux", "arm64"},
+		{"boss", "boss", "linux", "amd64"},
+		{"bos", "boss", "linux", "amd64"},
 	}
 
 	for _, tc := range cases {
@@ -204,5 +206,57 @@ func TestCLIBuildWebTargetGeneratesHTMLAndBinary(t *testing.T) {
 	}
 	if !foundBin {
 		t.Fatalf("expected compiled web server binary in build/web/, found %v", entries)
+	}
+}
+
+func TestCLIBuildBOSSTargetAndAlias(t *testing.T) {
+	for _, targetFlag := range []string{"boss", "bos"} {
+		t.Run(targetFlag, func(t *testing.T) {
+			base := t.TempDir()
+			appDir, err := ScaffoldProject(base, "BharatDesk")
+			if err != nil {
+				t.Fatalf("ScaffoldProject failed: %v", err)
+			}
+
+			var stdout, stderr bytes.Buffer
+			if code := RunCLI([]string{"build", "-t", targetFlag, appDir}, &stdout, &stderr); code != 0 {
+				t.Fatalf("gopkin build -t %s failed (%d): %s", targetFlag, code, stderr.String())
+			}
+
+			bossDir := filepath.Join(appDir, "build", "boss")
+			binPath := filepath.Join(bossDir, "bharatdesk")
+			binBytes, err := os.ReadFile(binPath)
+			if err != nil {
+				t.Fatalf("expected compiled BOSS binary at %s: %v", binPath, err)
+			}
+			// Verify static Linux ELF header (\x7fELF).
+			if len(binBytes) < 4 || string(binBytes[:4]) != "\x7fELF" {
+				t.Fatalf("expected Linux ELF binary at %s", binPath)
+			}
+
+			desktopPath := filepath.Join(bossDir, "bharatdesk.desktop")
+			desktopBytes, err := os.ReadFile(desktopPath)
+			if err != nil {
+				t.Fatalf("expected .desktop launcher at %s: %v", desktopPath, err)
+			}
+			desktopStr := string(desktopBytes)
+			if !strings.Contains(desktopStr, "[Desktop Entry]") ||
+				!strings.Contains(desktopStr, "Name=BharatDesk") ||
+				!strings.Contains(desktopStr, "Exec=/usr/local/bin/bharatdesk") {
+				t.Fatalf("unexpected .desktop content:\n%s", desktopStr)
+			}
+
+			controlPath := filepath.Join(bossDir, "DEBIAN", "control")
+			controlBytes, err := os.ReadFile(controlPath)
+			if err != nil {
+				t.Fatalf("expected DEBIAN/control at %s: %v", controlPath, err)
+			}
+			controlStr := string(controlBytes)
+			if !strings.Contains(controlStr, "Package: bharatdesk") ||
+				!strings.Contains(controlStr, "Architecture: amd64") ||
+				!strings.Contains(controlStr, "Bharat Operating System Solutions") {
+				t.Fatalf("unexpected DEBIAN/control content:\n%s", controlStr)
+			}
+		})
 	}
 }
