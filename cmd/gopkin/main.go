@@ -13,6 +13,7 @@ import (
 
 	"gopkin"
 	"gopkin/core/config"
+	"gopkin/core/lang"
 	"gopkin/core/platform"
 )
 
@@ -145,21 +146,14 @@ func ScaffoldProject(baseDir, appName string) (string, error) {
 }
 
 func starterMainGPK(appName string) string {
-	return fmt.Sprintf(`package main
-
-import . "gopkin"
-
-func main() {
-	Run(%q,
-		Center(
-			Card(
-				Heading(%q),
-				Text("Ready to build with Gopkin.").Muted(),
-			),
-		),
-	)
+	return fmt.Sprintf(`app %q {
+    Page(%q) {
+        Card(%q) {
+            Text("Ready to build with Gopkin.")
+        }
+    }
 }
-`, appName, appName)
+`, appName, appName, appName)
 }
 
 // BuildResult describes artifacts produced by BuildProject.
@@ -170,13 +164,20 @@ type BuildResult struct {
 	Artifacts          []string
 }
 
-// BuildProject prepares build/<target>/ for projectDir, automatically generating
-// native AndroidManifest.xml (for android), Info.plist (for ios), or a
-// self-contained web server binary + static index.html bundle (for web).
+// BuildProject prepares build/<target>/ for projectDir, transpiling the .gpk
+// entry point and generating native Android/iOS/Web/BOSS artifacts from gopkin.yaml.
 func BuildProject(projectDir string, target TargetSpec) (BuildResult, error) {
 	ctx, err := ResolveProject(projectDir)
 	if err != nil {
 		return BuildResult{}, err
+	}
+
+	rawEntry, err := os.ReadFile(ctx.EntryPath)
+	if err != nil {
+		return BuildResult{}, fmt.Errorf("read entry %q: %w", ctx.EntryPath, err)
+	}
+	if _, err := lang.Transpile(string(rawEntry)); err != nil {
+		return BuildResult{}, fmt.Errorf("transpile %q: %w", ctx.EntryPath, err)
 	}
 
 	outDir := filepath.Join(ctx.RootDir, "build", target.Name)
