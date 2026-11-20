@@ -707,28 +707,12 @@
               <span>app/main.gpk</span>
               <button class="copy-btn js-copy-pre" type="button">Copy</button>
             </div>
-            <pre><code><span class="kw">package</span> main
+            <pre><code><span class="kw">app</span> <span class="str">"MyApp"</span> {
+    db.Local(<span class="str">"app_data.db"</span>)
 
-<span class="kw">import</span> (
-    . <span class="str">"gopkin"</span>
-    <span class="str">"gopkin/backend/db"</span>
-)
-
-<span class="kw">func</span> main() {
-    _ = db.Connect(db.LocalSQL(<span class="str">"app_data.db"</span>))
-    rows, _ := db.Table(<span class="str">"devices"</span>).
-        OrderBy(<span class="str">"id"</span>, <span class="str">"DESC"</span>).
-        Get()
-
-    Run(<span class="str">"MyApp"</span>,
-        Column(
-            Heading(<span class="str">"Devices"</span>),
-            DataTable([]TableColumn{
-                Col(<span class="str">"name"</span>, <span class="str">"Device"</span>),
-                Col(<span class="str">"status"</span>, <span class="str">"Status"</span>),
-            }, rows),
-        ),
-    )
+    Page(<span class="str">"Devices"</span>) {
+        Table(<span class="str">"devices"</span>, columns: [<span class="str">"name"</span>, <span class="str">"status"</span>], search: <span class="kw">true</span>)
+    }
 }</code></pre>
           </div>
         </div>

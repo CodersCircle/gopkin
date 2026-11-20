@@ -366,6 +366,31 @@
       border-color: var(--border);
     }
 
+    /* Inline .gpk / Pure Go API Switcher */
+    .lang-tabs {
+      display: inline-flex;
+      gap: 4px;
+      align-items: center;
+    }
+    .lang-tab {
+      border: 1px solid transparent;
+      background: transparent;
+      color: #94a3b8;
+      padding: 3px 9px;
+      border-radius: 6px;
+      font-size: 0.74rem;
+      font-weight: 650;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      cursor: pointer;
+    }
+    .lang-tab:hover { color: #ffffff; }
+    .lang-tab.active {
+      background: var(--accent);
+      color: #ffffff;
+    }
+    .code-pane { display: none; }
+    .code-pane.active { display: block; }
+
     @media (max-width: 860px) {
       .layout { grid-template-columns: 1fr; gap: 0; }
       aside {
@@ -505,121 +530,114 @@ permissions:
       <section id="ui-kit">
         <h2>UI &amp; Filament-Style Plug-and-Play Kit</h2>
         <p>
-          Gopkin ships with reactive state (<code>State[T]</code> / <code>Signal[T]</code> / <code>Num</code>),
-          layouts (<code>Row</code>, <code>Column</code>, <code>Center</code>, <code>Grid</code>),
-          native keyboard &amp; focus management (<code>TextInput</code>), and high-level CRUD components
-          (<code>Form</code>, <code>DataTable</code>, <code>AuthCard</code>, <code>Badge</code>, <code>Toast</code>),
-          plus crisp monochrome styling and adaptive icons/surfaces.
+          Write clean, declarative <code>.gpk</code> screens with reactive state, native keyboard focus
+          (<code>Input</code> / <code>TextInput</code>), and Filament-style CRUD components
+          (<code>Form</code>, <code>Table</code> / <code>DataTable</code>, <code>AuthCard</code>,
+          <code>Badge</code>, <code>Toast</code>), plus monochrome styling and adaptive icons.
         </p>
 
-        <h3>Interactive TextInput &amp; Declarative Form</h3>
-        <div class="code-wrap">
+        <h3>Interactive Form</h3>
+        <div class="code-wrap js-code-switch">
           <div class="code-hdr">
-            <span>app/main.gpk</span>
+            <div class="lang-tabs" role="tablist">
+              <button class="lang-tab active" type="button" data-lang="gpk">app/main.gpk</button>
+              <button class="lang-tab" type="button" data-lang="go">Pure Go API</button>
+            </div>
             <button class="copy-code" type="button">Copy</button>
           </div>
-          <pre><code>package main
+          <pre class="code-pane active" data-pane="gpk"><code>app "Devices" {
+    db.Local("app_data.db")
 
-import (
-    . "gopkin"
-    "gopkin/backend/db"
-)
-
-func main() {
-    _ = db.Connect(db.LocalSQL("app_data.db"))
-
-    deviceForm := Form(
-        TextField("name", "Device Name").Placeholder("Living Room Light").Required(),
-        SelectField("status", "Status", "on", "off"),
-        ToggleField("auto", "Auto Schedule", true),
-    ).SubmitLabel("Save Device").OnSubmit(func(vals map[string]string) error {
-        _, err := db.Table("devices").Insert(map[string]any{
-            "name":   vals["name"],
-            "status": vals["status"],
-        })
-        return err
-    })
-
-    Run("Devices", Center(Card(Heading("New Device"), deviceForm)))
+    Card("New Device") {
+        Form(table: "devices") {
+            Input("name", label: "Device Name", required: true)
+            Select("status", options: ["on", "off"])
+            Toggle("auto", label: "Auto Schedule", default: true)
+            Submit("Save Device")
+        }
+    }
 }</code></pre>
+          <pre class="code-pane" data-pane="go"><code>form := Form(
+    TextField("name", "Device Name").Required(),
+    SelectField("status", "Status", "on", "off"),
+    ToggleField("auto", "Auto Schedule", true),
+).SubmitLabel("Save Device").OnSubmit(func(v map[string]string) error {
+    _, err := db.Table("devices").Insert(map[string]any{
+        "name": v["name"], "status": v["status"],
+    })
+    return err
+})</code></pre>
         </div>
 
         <h3>DataTable, Badge, Toast &amp; AuthCard</h3>
-        <div class="code-wrap">
+        <div class="code-wrap js-code-switch">
           <div class="code-hdr">
-            <span>CRUD Table &amp; Auth</span>
+            <div class="lang-tabs" role="tablist">
+              <button class="lang-tab active" type="button" data-lang="gpk">app/dashboard.gpk</button>
+              <button class="lang-tab" type="button" data-lang="go">Pure Go API</button>
+            </div>
             <button class="copy-code" type="button">Copy</button>
           </div>
-          <pre><code>rows, _ := db.Table("devices").OrderBy("id", "DESC").Get()
+          <pre class="code-pane active" data-pane="gpk"><code>Page("Devices") {
+    Badge("Online", variant: "success")
+    Toast("Synced with LocalSQL", variant: "info")
 
-table := DataTable(
-    []TableColumn{
-        Col("id", "ID", 60),
-        Col("name", "Device"),
-        Col("status", "Status", 100),
-    },
-    rows,
-).PageSize(10).Actions(
-    TableAction("Delete", func(row map[string]any) {
-        _, _ = db.Table("devices").Where("id", row["id"]).Delete()
+    Table("devices", columns: ["id", "name", "status"], search: true, pageSize: 10) {
+        Action("Delete") { row -> db.Delete("devices", id: row.id) }
+    }
+}
+
+Page("Login") {
+    AuthCard("Sign In") { email, password ->
+        auth.Login(email, password)
+    }
+}</code></pre>
+          <pre class="code-pane" data-pane="go"><code>rows, _ := db.Table("devices").OrderBy("id", "DESC").Get()
+
+table := DataTable([]TableColumn{
+    Col("id", "ID", 60), Col("name", "Device"), Col("status", "Status", 100),
+}, rows).PageSize(10).Actions(
+    TableAction("Delete", func(r map[string]any) {
+        _, _ = db.Table("devices").Where("id", r["id"]).Delete()
     }),
 )
-
-statusBadge := Badge("Online", "success")
-notice := Toast("Synced with LocalSQL", "info")
-
-loginCard := AuthCard("Sign In", func(email, password string) error {
-    // Authenticate against backend/db or any external API
-    return nil
-})</code></pre>
+badge := Badge("Online", "success")
+toast := Toast("Synced with LocalSQL", "info")
+login := AuthCard("Sign In", func(email, pass string) error { return nil })</code></pre>
         </div>
       </section>
 
       <section id="dual-sql">
         <h2>Dual-SQL Native Backend (<code>backend/db</code>)</h2>
         <p>
-          One unified <code>Engine</code> interface and Fluent Query Builder powers offline-first embedded storage,
-          direct MySQL connections, and credential-safe HTTP proxy bridges — all in 100% Pure Go with zero CGO.
+          Switch between ACID-safe offline local storage, direct MySQL, and credential-safe HTTP proxy
+          bridges with a single line — 100% Pure Go, zero CGO.
         </p>
 
-        <div class="code-wrap">
+        <div class="code-wrap js-code-switch">
           <div class="code-hdr">
-            <span>Connection Modes</span>
+            <div class="lang-tabs" role="tablist">
+              <button class="lang-tab active" type="button" data-lang="gpk">Dual-SQL (.gpk)</button>
+              <button class="lang-tab" type="button" data-lang="go">Pure Go API</button>
+            </div>
             <button class="copy-code" type="button">Copy</button>
           </div>
-          <pre><code>import "gopkin/backend/db"
+          <pre class="code-pane active" data-pane="gpk"><code>// Pick any database mode in 1 line:
+db.Local("app_data.db")                                  // Offline LocalSQL
+db.MySQL("user:pass@tcp(127.0.0.1:3306)/myapp")          // Direct Live MySQL
+db.MySQLProxy("https://db-bridge.myapp.com", "API_TOKEN") // Secure Mobile Proxy
 
-// Mode 1: Pure-Go ACID-safe single-file embedded DB (Android, iOS, Desktop, IoT)
-_ = db.Connect(db.LocalSQL("app_data.db"))
+// Fluent queries (auto-creates missing tables)
+db.Insert("devices", { name: "Light 1", status: "on" })
+lights = db.From("devices").Where("status", "on").OrderBy("id", "DESC").Limit(20)
+db.Update("devices", where: { id: 1 }, set: { status: "off" })
+db.Delete("devices", where: { id: 1 })</code></pre>
+          <pre class="code-pane" data-pane="go"><code>_ = db.Connect(db.LocalSQL("app_data.db"))
+// or: db.Connect(db.MySQL("user:pass@tcp(127.0.0.1:3306)/myapp"))
+// or: db.Connect(db.MySQLProxy("https://db-bridge.myapp.com", "API_TOKEN"))
 
-// Mode 2: Pure-Go MySQL wire-protocol client (XAMPP, Laragon, Cloud MySQL)
-_ = db.Connect(db.MySQL("user:pass@tcp(127.0.0.1:3306)/myapp"))
-
-// Mode 3: Secure HTTP/JSON MySQL Proxy (never embed DB credentials in mobile APKs)
-_ = db.Connect(db.MySQLProxy("https://db-bridge.myapp.com", "API_TOKEN"))</code></pre>
-        </div>
-
-        <h3>Fluent Query Builder</h3>
-        <div class="code-wrap">
-          <div class="code-hdr">
-            <span>CRUD Operations</span>
-            <button class="copy-code" type="button">Copy</button>
-          </div>
-          <pre><code>// Insert (auto-creates missing tables &amp; columns automatically)
-id, _ := db.Table("devices").Insert(map[string]any{
-    "name": "Light 1", "status": "on", "watts": 12,
-})
-
-// Filter (=, !=, &gt;, &lt;, &gt;=, &lt;=, LIKE), sort, and paginate
-rows, _ := db.Table("devices").
-    Where("status", "on").
-    Where("name", "LIKE", "%Light%").
-    OrderBy("id", "DESC").
-    Limit(20).
-    Offset(0).
-    Get()
-
-// Update &amp; Delete
+id, _ := db.Table("devices").Insert(map[string]any{"name": "Light 1", "status": "on"})
+rows, _ := db.Table("devices").Where("status", "on").OrderBy("id", "DESC").Limit(20).Get()
 _, _ = db.Table("devices").Where("id", id).Update(map[string]any{"status": "off"})
 _, _ = db.Table("devices").Where("id", id).Delete()</code></pre>
         </div>
@@ -628,28 +646,31 @@ _, _ = db.Table("devices").Where("id", id).Delete()</code></pre>
       <section id="permissions">
         <h2>Unified Permissions API</h2>
         <p>
-          Declare permissions once in <code>gopkin.yaml</code> and request them in Go with the same API across
-          all platforms. At build time, Gopkin automatically injects <code>&lt;uses-permission&gt;</code> entries
-          into <code>build/android/AndroidManifest.xml</code> and Apple privacy usage keys into
-          <code>build/ios/Info.plist</code>.
+          Declare permissions once in <code>gopkin.yaml</code> and request them cleanly across Android,
+          iOS, Desktop, and Web. At build time, Gopkin automatically generates
+          <code>build/android/AndroidManifest.xml</code> and <code>build/ios/Info.plist</code>.
         </p>
 
-        <div class="code-wrap">
+        <div class="code-wrap js-code-switch">
           <div class="code-hdr">
-            <span>Runtime Permission Check &amp; Prompt</span>
+            <div class="lang-tabs" role="tablist">
+              <button class="lang-tab active" type="button" data-lang="gpk">Permissions (.gpk)</button>
+              <button class="lang-tab" type="button" data-lang="go">Pure Go API</button>
+            </div>
             <button class="copy-code" type="button">Copy</button>
           </div>
-          <pre><code>import . "gopkin"
-
-if CheckPermission(PermCamera) != Granted {
+          <pre class="code-pane active" data-pane="gpk"><code>onClick("Scan QR") {
+    if AskPermission(Camera) == Granted {
+        OpenScanner()
+    }
+}
+// Supported: Location, Camera, Bluetooth, Notifications, Storage</code></pre>
+          <pre class="code-pane" data-pane="go"><code>if CheckPermission(PermCamera) != Granted {
     if AskPermission(PermCamera) == Granted {
         // Camera permission granted
     }
 }
-
-// Supported constants:
-// PermLocation, PermCamera, PermBluetooth, PermNotifications, PermStorage
-// Statuses: Granted, Denied, Prompt</code></pre>
+// Constants: PermLocation, PermCamera, PermBluetooth, PermNotifications, PermStorage</code></pre>
         </div>
       </section>
 
@@ -801,43 +822,38 @@ if CheckPermission(PermCamera) != Granted {
         <h2>IoT &amp; Hardware Kit (<code>hardware/</code>)</h2>
         <p>
           Control physical GPIO pins and connect to MQTT brokers using 100% Pure Go.
-          <code>hardware.OpenGPIO()</code> automatically uses Linux sysfs (<code>/sys/class/gpio</code>) on
-          Raspberry Pi / Linux SBCs and falls back to <code>MockGPIO</code> on Windows/macOS.
+          <code>hardware.OpenGPIO()</code> uses Linux sysfs (<code>/sys/class/gpio</code>) on
+          Raspberry Pi / Linux SBCs and falls back to <code>MockGPIO</code> on desktop.
         </p>
 
-        <h3>Pure-Go GPIO</h3>
-        <div class="code-wrap">
+        <h3>Pure-Go GPIO &amp; MQTT v3.1.1</h3>
+        <div class="code-wrap js-code-switch">
           <div class="code-hdr">
-            <span>hardware/gpio</span>
+            <div class="lang-tabs" role="tablist">
+              <button class="lang-tab active" type="button" data-lang="gpk">IoT (.gpk)</button>
+              <button class="lang-tab" type="button" data-lang="go">Pure Go API</button>
+            </div>
             <button class="copy-code" type="button">Copy</button>
           </div>
-          <pre><code>import "gopkin/hardware"
+          <pre class="code-pane active" data-pane="gpk"><code>app "SmartRelay" {
+    gpio = hardware.OpenGPIO()
+    mqtt = hardware.MQTT("127.0.0.1:1883")
 
-gpio := hardware.OpenGPIO()
+    mqtt.Subscribe("home/light/1") { payload ->
+        gpio.Write(17, payload == "ON")
+    }
+    Toggle("Living Light") { on -> mqtt.Publish("home/light/1", on) }
+}</code></pre>
+          <pre class="code-pane" data-pane="go"><code>gpio := hardware.OpenGPIO()
 defer gpio.Close()
-
 _ = gpio.PinMode(17, hardware.PinOutput)
-_ = gpio.DigitalWrite(17, hardware.High)
-level, _ := gpio.Toggle(17)</code></pre>
-        </div>
-
-        <h3>Pure-Go MQTT v3.1.1 Client</h3>
-        <div class="code-wrap">
-          <div class="code-hdr">
-            <span>hardware/mqtt</span>
-            <button class="copy-code" type="button">Copy</button>
-          </div>
-          <pre><code>import "gopkin/hardware"
+_, _ = gpio.Toggle(17)
 
 mqtt := hardware.NewMQTTClient()
 if err := mqtt.Connect("127.0.0.1:1883", "gopkin-node-1", "", ""); err == nil {
     defer mqtt.Disconnect()
-
-    _ = mqtt.Subscribe("home/+/status", func(topic string, payload []byte) {
-        // Handle incoming sensor or relay telemetry
-    })
+    _ = mqtt.Subscribe("home/+/status", func(topic string, payload []byte) {})
     _ = mqtt.Publish("home/light1/status", []byte("ON"))
-    _ = mqtt.Ping()
 }</code></pre>
         </div>
       </section>
@@ -874,6 +890,19 @@ if err := mqtt.Connect("127.0.0.1:1883", "gopkin-node-1", "", ""); err == nil {
       });
       setInstallTab("win");
 
+      // .gpk / Pure Go API switcher tabs
+      document.querySelectorAll(".js-code-switch").forEach(function (box) {
+        const langTabs = box.querySelectorAll(".lang-tab");
+        const panes = box.querySelectorAll(".code-pane");
+        langTabs.forEach(function (tab) {
+          tab.addEventListener("click", function () {
+            const target = tab.dataset.lang;
+            langTabs.forEach(function (t) { t.classList.toggle("active", t === tab); });
+            panes.forEach(function (p) { p.classList.toggle("active", p.dataset.pane === target); });
+          });
+        });
+      });
+
       // Copy-code buttons for every code block and 1-line command row
       document.querySelectorAll(".copy-code").forEach(function (btn) {
         btn.addEventListener("click", function () {
@@ -882,7 +911,9 @@ if err := mqtt.Connect("127.0.0.1:1883", "gopkin-node-1", "", ""); err == nil {
             code = btn.parentElement.querySelector("code");
           } else {
             const wrap = btn.closest(".code-wrap");
-            if (wrap) code = wrap.querySelector("pre code");
+            if (wrap) {
+              code = wrap.querySelector("pre.code-pane.active code") || wrap.querySelector("pre code");
+            }
           }
           if (!code || !navigator.clipboard || !navigator.clipboard.writeText) return;
           navigator.clipboard.writeText(code.textContent).then(function () {
