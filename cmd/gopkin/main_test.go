@@ -140,6 +140,25 @@ permissions:
 		t.Fatalf("AndroidManifest.xml missing expected permissions:\n%s", androidStr)
 	}
 
+	gradlePath := filepath.Join(appDir, "build", "android", "app", "build.gradle")
+	gradleBytes, err := os.ReadFile(gradlePath)
+	if err != nil {
+		t.Fatalf("expected app/build.gradle at %s: %v", gradlePath, err)
+	}
+	if !strings.Contains(string(gradleBytes), `applicationId "com.gopkin.fieldscanner"`) {
+		t.Fatalf("app/build.gradle missing applicationId:\n%s", string(gradleBytes))
+	}
+
+	ktPath := filepath.Join(appDir, "build", "android", "app", "src", "main", "java", "com", "gopkin", "fieldscanner", "MainActivity.kt")
+	ktBytes, err := os.ReadFile(ktPath)
+	if err != nil {
+		t.Fatalf("expected MainActivity.kt at %s: %v", ktPath, err)
+	}
+	if !strings.Contains(string(ktBytes), `package com.gopkin.fieldscanner`) ||
+		!strings.Contains(string(ktBytes), `android.permission.CAMERA`) {
+		t.Fatalf("MainActivity.kt missing expected package/permissions:\n%s", string(ktBytes))
+	}
+
 	// Build for iOS with --target ios.
 	stdout.Reset()
 	stderr.Reset()
@@ -157,6 +176,16 @@ permissions:
 		!strings.Contains(iosStr, `<key>NSLocationWhenInUseUsageDescription</key>`) ||
 		!strings.Contains(iosStr, `<string>Used to find nearby services</string>`) {
 		t.Fatalf("Info.plist missing expected permission keys/reasons:\n%s", iosStr)
+	}
+
+	swiftPath := filepath.Join(appDir, "build", "ios", "Sources", "GopkinApp.swift")
+	swiftBytes, err := os.ReadFile(swiftPath)
+	if err != nil {
+		t.Fatalf("expected Sources/GopkinApp.swift at %s: %v", swiftPath, err)
+	}
+	if !strings.Contains(string(swiftBytes), `struct GopkinHostApp: App`) ||
+		!strings.Contains(string(swiftBytes), `"FieldScanner"`) {
+		t.Fatalf("Sources/GopkinApp.swift missing expected SwiftUI host:\n%s", string(swiftBytes))
 	}
 
 	// Run command with -t iot resolves cleanly.

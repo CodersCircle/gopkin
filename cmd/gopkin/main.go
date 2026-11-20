@@ -192,21 +192,52 @@ func BuildProject(projectDir string, target TargetSpec) (BuildResult, error) {
 	switch target.Name {
 	case "android":
 		xmlContent := config.GenerateAndroidManifest(ctx.Manifest)
-		dest := filepath.Join(outDir, "AndroidManifest.xml")
-		if err := os.WriteFile(dest, []byte(xmlContent), 0o644); err != nil {
+		manifestDest := filepath.Join(outDir, "AndroidManifest.xml")
+		if err := os.WriteFile(manifestDest, []byte(xmlContent), 0o644); err != nil {
 			return res, fmt.Errorf("write AndroidManifest.xml: %w", err)
 		}
-		res.GeneratedManifests = append(res.GeneratedManifests, dest)
-		res.Artifacts = append(res.Artifacts, dest)
+		res.GeneratedManifests = append(res.GeneratedManifests, manifestDest)
+		res.Artifacts = append(res.Artifacts, manifestDest)
+
+		gradleDir := filepath.Join(outDir, "app")
+		if err := os.MkdirAll(gradleDir, 0o755); err != nil {
+			return res, fmt.Errorf("create android app dir: %w", err)
+		}
+		gradleDest := filepath.Join(gradleDir, "build.gradle")
+		if err := os.WriteFile(gradleDest, []byte(config.GenerateAndroidBuildGradle(ctx.Manifest)), 0o644); err != nil {
+			return res, fmt.Errorf("write app/build.gradle: %w", err)
+		}
+		res.Artifacts = append(res.Artifacts, gradleDest)
+
+		pkgPath := filepath.FromSlash(config.AndroidPackagePath(ctx.Manifest.ID))
+		ktDir := filepath.Join(outDir, "app", "src", "main", "java", pkgPath)
+		if err := os.MkdirAll(ktDir, 0o755); err != nil {
+			return res, fmt.Errorf("create android kotlin source dir: %w", err)
+		}
+		ktDest := filepath.Join(ktDir, "MainActivity.kt")
+		if err := os.WriteFile(ktDest, []byte(config.GenerateAndroidMainActivity(ctx.Manifest)), 0o644); err != nil {
+			return res, fmt.Errorf("write MainActivity.kt: %w", err)
+		}
+		res.Artifacts = append(res.Artifacts, ktDest)
 
 	case "ios":
 		plistContent := config.GenerateIOSInfoPlist(ctx.Manifest)
-		dest := filepath.Join(outDir, "Info.plist")
-		if err := os.WriteFile(dest, []byte(plistContent), 0o644); err != nil {
+		plistDest := filepath.Join(outDir, "Info.plist")
+		if err := os.WriteFile(plistDest, []byte(plistContent), 0o644); err != nil {
 			return res, fmt.Errorf("write Info.plist: %w", err)
 		}
-		res.GeneratedManifests = append(res.GeneratedManifests, dest)
-		res.Artifacts = append(res.Artifacts, dest)
+		res.GeneratedManifests = append(res.GeneratedManifests, plistDest)
+		res.Artifacts = append(res.Artifacts, plistDest)
+
+		swiftDir := filepath.Join(outDir, "Sources")
+		if err := os.MkdirAll(swiftDir, 0o755); err != nil {
+			return res, fmt.Errorf("create ios Sources dir: %w", err)
+		}
+		swiftDest := filepath.Join(swiftDir, "GopkinApp.swift")
+		if err := os.WriteFile(swiftDest, []byte(config.GenerateIOSAppSwift(ctx.Manifest)), 0o644); err != nil {
+			return res, fmt.Errorf("write Sources/GopkinApp.swift: %w", err)
+		}
+		res.Artifacts = append(res.Artifacts, swiftDest)
 
 	case "web":
 		if err := buildWebBundle(ctx, outDir, &res); err != nil {

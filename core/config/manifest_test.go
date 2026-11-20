@@ -159,3 +159,56 @@ func TestGenerateAndroidManifestAndIOSInfoPlist(t *testing.T) {
 		}
 	}
 }
+
+func TestGenerateMobileHostBundles(t *testing.T) {
+	m := config.Manifest{
+		Name:    "FieldScanner",
+		ID:      "com.gopkin.fieldscanner",
+		Version: "1.4.2",
+		Entry:   "app/main.gpk",
+		Permissions: map[string]string{
+			"camera":   "Used to scan QR codes",
+			"location": "Used to tag field inspections",
+		},
+	}
+
+	if got := config.AndroidPackagePath(m.ID); got != "com/gopkin/fieldscanner" {
+		t.Fatalf("AndroidPackagePath = %q, want com/gopkin/fieldscanner", got)
+	}
+
+	gradle := config.GenerateAndroidBuildGradle(m)
+	for _, snip := range []string{
+		`namespace 'com.gopkin.fieldscanner'`,
+		`applicationId "com.gopkin.fieldscanner"`,
+		`versionName "1.4.2"`,
+	} {
+		if !strings.Contains(gradle, snip) {
+			t.Errorf("build.gradle missing %q", snip)
+		}
+	}
+
+	kt := config.GenerateAndroidMainActivity(m)
+	for _, snip := range []string{
+		`package com.gopkin.fieldscanner`,
+		`class MainActivity : AppCompatActivity()`,
+		`android.permission.CAMERA`,
+		`android.permission.ACCESS_FINE_LOCATION`,
+		`requestPermissions`,
+	} {
+		if !strings.Contains(kt, snip) {
+			t.Errorf("MainActivity.kt missing %q", snip)
+		}
+	}
+
+	swift := config.GenerateIOSAppSwift(m)
+	for _, snip := range []string{
+		`import SwiftUI`,
+		`struct GopkinHostApp: App`,
+		`UIViewRepresentable`,
+		`"FieldScanner"`,
+	} {
+		if !strings.Contains(swift, snip) {
+			t.Errorf("GopkinApp.swift missing %q", snip)
+		}
+	}
+}

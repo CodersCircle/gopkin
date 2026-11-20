@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gopkin — One Go Codebase. Every Platform.</title>
+  <meta name="description" content="Pure-Go, zero-CGO, zero-dependency cross-platform UI, Dual-SQL backend, Filament-style CRUD kit, and IoT framework for Windows, macOS, Linux, BOSS Linux, Web, Android, iOS, and IoT.">
+  <style>
+    :root {
+      --bg: #ffffff;
+      --surface: #f5f6f8;
+      --surface-elevated: #ffffff;
+      --text: #0a0a0a;
+      --muted: #5a5f6b;
+      --border: #e2e5eb;
+      --accent: #1B4EF5;
+      --accent-hover: #133fd4;
+      --code-bg: #0f1117;
+      --code-text: #f1f5f9;
+      --shadow: 0 8px 30px rgba(10, 10, 10, 0.06);
+    }
+    [data-theme="dark"] {
+      --bg: #090b10;
+      --surface: #121620;
+      --surface-elevated: #161b26;
+      --text: #f8fafc;
+      --muted: #9aa3b5;
+      --border: #252c3b;
+      --accent: #3b6bff;
+      --accent-hover: #1B4EF5;
+      --code-bg: #05070b;
+      --code-text: #e2e8f0;
+      --shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+    a { color: inherit; text-decoration: none; }
+    .container { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+
+    /* Header */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(8px);
+    }
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-size: 0.92rem;
+      color: var(--muted);
+    }
+    .nav-links a:hover { color: var(--text); }
+    .theme-btn {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .theme-btn:hover { border-color: var(--accent); }
+
+    /* Hero */
+    .hero {
+      padding: 84px 0 56px;
+      text-align: center;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      margin-bottom: 24px;
+    }
+    .pill-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+    h1 {
+      font-size: clamp(2.25rem, 5vw, 3.75rem);
+      line-height: 1.08;
+      letter-spacing: -0.035em;
+      font-weight: 850;
+      margin-bottom: 18px;
+    }
+    h1 span { color: var(--accent); }
+    .subtitle {
+      max-width: 680px;
+      margin: 0 auto 28px;
+      font-size: 1.12rem;
+      color: var(--muted);
+    }
+    .platforms {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 36px;
+    }
+    .platform-tag {
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      background: var(--surface);
+      border: 1px solid var(--border);
+    }
+    .platform-tag.highlight {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .cta-row {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 44px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 22px;
+      border-radius: 10px;
+      font-weight: 650;
+      font-size: 0.95rem;
+      transition: transform 0.15s ease, background 0.15s ease;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-primary { background: var(--accent); color: #ffffff; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    /* Install Box */
+    .install-card {
+      max-width: 760px;
+      margin: 0 auto;
+      background: var(--surface-elevated);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      text-align: left;
+    }
+    .tabs {
+      display: flex;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 6px 8px 0;
+      gap: 4px;
+    }
+    .tab {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      padding: 9px 14px;
+      font-size: 0.86rem;
+      font-weight: 650;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+    }
+    .tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .install-body {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 18px;
+      background: var(--code-bg);
+      color: var(--code-text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.88rem;
+      overflow-x: auto;
+    }
+    .copy-btn {
+      flex-shrink: 0;
+      background: #1e2433;
+      color: #ffffff;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .copy-btn:hover { background: var(--accent); border-color: var(--accent); }
+
+    /* Sections */
+    section { padding: 64px 0; }
+    .section-title {
+      font-size: 1.85rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      margin-bottom: 10px;
+    }
+    .section-sub {
+      color: var(--muted);
+      margin-bottom: 34px;
+      max-width: 640px;
+    }
+
+    /* Feature Grid */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+      gap: 18px;
+    }
+    .card {
+      background: var(--surface-elevated);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+    .card-tag {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+    .card h3 {
+      font-size: 1.12rem;
+      font-weight: 750;
+      margin-bottom: 8px;
+    }
+    .card p { font-size: 0.93rem; color: var(--muted); }
+
+    /* Quickstart */
+    .code-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+    }
+    .code-panel {
+      background: var(--code-bg);
+      color: var(--code-text);
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .code-panel-hdr {
+      padding: 10px 16px;
+      font-size: 0.8rem;
+      font-weight: 650;
+      color: #94a3b8;
+      border-bottom: 1px solid #1e293b;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    pre {
+      padding: 18px;
+      overflow-x: auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.85rem;
+      line-height: 1.55;
+    }
+    .kw { color: #93c5fd; }
+    .str { color: #86efac; }
+    .cm { color: #64748b; }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 36px 0;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+    .footer-inner {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .footer-links { display: flex; gap: 18px; }
+    .footer-links a:hover { color: var(--accent); }
+
+    @media (max-width: 640px) {
+      .nav-links a.hide-sm { display: none; }
+      .hero { padding-top: 56px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container nav">
+      <a href="#" class="brand" aria-label="Gopkin Home">
+        <!-- Isometric Gopkin Cube Logo -->
+        <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <polygon points="16,2 29,9.5 16,17 3,9.5" fill="#1B4EF5"/>
+          <polygon points="3,9.5 16,17 16,30 3,22.5" fill="#0F172A"/>
+          <polygon points="29,9.5 29,22.5 16,30 16,17" fill="#3B6BFF"/>
+          <circle cx="16" cy="17" r="2.2" fill="#FFFFFF"/>
+        </svg>
+        <span>Gopkin</span>
+      </a>
+      <nav class="nav-links">
+        <a href="#features" class="hide-sm">Features</a>
+        <a href="#quickstart" class="hide-sm">Quickstart</a>
+        <a href="https://github.com/CodersCircle/gopkin" target="_blank" rel="noopener">GitHub</a>
+        <button id="theme-toggle" class="theme-btn" type="button" aria-label="Toggle color theme">Dark</button>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <div class="pill"><span class="pill-dot"></span> 100% Pure Go &middot; Zero CGO &middot; Zero External Dependencies</div>
+        <h1>One Go Codebase.<br><span>Every Platform.</span></h1>
+        <p class="subtitle">
+          Build native desktop, web, mobile, BOSS Linux, and IoT applications with 1-liner declarative UI,
+          built-in Dual-SQL storage, Filament-style CRUD kits, and unified hardware &amp; permissions APIs.
+        </p>
+
+        <div class="platforms">
+          <span class="platform-tag">Windows</span>
+          <span class="platform-tag">macOS</span>
+          <span class="platform-tag">Linux</span>
+          <span class="platform-tag highlight">BOSS Linux</span>
+          <span class="platform-tag">Web (Live Canvas)</span>
+          <span class="platform-tag">Android</span>
+          <span class="platform-tag">iOS</span>
+          <span class="platform-tag">IoT (ARM64)</span>
+        </div>
+
+        <div class="cta-row">
+          <a href="#quickstart" class="btn btn-primary">Get Started</a>
+          <a href="https://github.com/CodersCircle/gopkin" target="_blank" rel="noopener" class="btn btn-secondary">View on GitHub</a>
+        </div>
+
+        <div class="install-card">
+          <div class="tabs" role="tablist">
+            <button class="tab active" type="button" role="tab" data-tab="unix" aria-selected="true">macOS / Linux / BOSS</button>
+            <button class="tab" type="button" role="tab" data-tab="win" aria-selected="false">Windows PowerShell</button>
+          </div>
+          <div class="install-body">
+            <code id="install-cmd">curl -fsSL https://raw.githubusercontent.com/CodersCircle/gopkin/main/install.sh | sh</code>
+            <button id="copy-btn" class="copy-btn" type="button">Copy</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="features">
+      <div class="container">
+        <h2 class="section-title">Engineered for Zero Friction</h2>
+        <p class="section-sub">Everything you need to ship production apps in a single dependency-free Go toolchain.</p>
+
+        <div class="grid">
+          <article class="card">
+            <span class="card-tag">Architecture</span>
+            <h3>Zero CGO &amp; Zero Dependencies</h3>
+            <p>Your <code>go.mod</code> stays completely clean. Cross-compile static binaries for Windows, macOS, Linux, BOSS Linux, Web, and Raspberry Pi without C toolchains.</p>
+          </article>
+
+          <article class="card">
+            <span class="card-tag">Database</span>
+            <h3>Dual-SQL Native Backend</h3>
+            <p>Switch seamlessly between ACID-safe single-file <code>db.LocalSQL</code>, pure-Go wire-protocol <code>db.MySQL</code>, and credential-safe <code>db.MySQLProxy</code> with one fluent Query Builder.</p>
+          </article>
+
+          <article class="card">
+            <span class="card-tag">UI Kit</span>
+            <h3>Filament-Style CRUD Kit</h3>
+            <p>Compose validated <code>Form</code>, searchable/sortable <code>DataTable</code>, <code>AuthCard</code>, <code>Badge</code>, and <code>Toast</code> widgets in lines of Go instead of boilerplate.</p>
+          </article>
+
+          <article class="card">
+            <span class="card-tag">Mobile</span>
+            <h3>1-Liner gopkin.yaml Permissions</h3>
+            <p>Declare <code>location</code>, <code>camera</code>, or <code>bluetooth</code> once in <code>gopkin.yaml</code>. Gopkin generates <code>AndroidManifest.xml</code>, <code>build.gradle</code>, <code>MainActivity.kt</code>, <code>Info.plist</code>, and <code>GopkinApp.swift</code> at build time.</p>
+          </article>
+
+          <article class="card">
+            <span class="card-tag">Hardware &amp; IoT</span>
+            <h3>Pure-Go GPIO &amp; MQTT v3.1.1</h3>
+            <p>Control Raspberry Pi / Linux SBC pins via zero-CGO sysfs GPIO (with desktop <code>MockGPIO</code>) and publish/subscribe telemetry over a stdlib TCP MQTT client.</p>
+          </article>
+
+          <article class="card">
+            <span class="card-tag">India &amp; Enterprise</span>
+            <h3>First-Class BOSS Linux Target</h3>
+            <p>Run <code>gopkin build -t boss</code> to emit a static Linux amd64 binary, <code>.desktop</code> launcher, and <code>DEBIAN/control</code> ready for Bharat Operating System Solutions.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="quickstart">
+      <div class="container">
+        <h2 class="section-title">Quickstart in 30 Seconds</h2>
+        <p class="section-sub">Clean <code>gopkin.yaml</code> + <code>app/main.gpk</code> layout with zero native folder clutter.</p>
+
+        <div class="code-grid">
+          <div class="code-panel">
+            <div class="code-panel-hdr">Terminal</div>
+            <pre><span class="cm"># 1. Scaffold a clean cross-platform app</span>
+gopkin new MyApp
+cd MyApp
+
+<span class="cm"># 2. Run on Desktop or Live Web Target</span>
+gopkin run
+gopkin run -t web
+
+<span class="cm"># 3. Build for any platform from one codebase</span>
+gopkin build -t boss
+gopkin build -t web
+gopkin build -t android
+gopkin build -t ios
+gopkin build -t iot</pre>
+          </div>
+
+          <div class="code-panel">
+            <div class="code-panel-hdr">app/main.gpk</div>
+            <pre><span class="kw">package</span> main
+
+<span class="kw">import</span> (
+    . <span class="str">"gopkin"</span>
+    <span class="str">"gopkin/backend/db"</span>
+)
+
+<span class="kw">func</span> main() {
+    _ = db.Connect(db.LocalSQL(<span class="str">"app_data.db"</span>))
+    rows, _ := db.Table(<span class="str">"devices"</span>).OrderBy(<span class="str">"id"</span>, <span class="str">"DESC"</span>).Get()
+
+    Run(<span class="str">"MyApp"</span>,
+        Column(
+            Heading(<span class="str">"Devices"</span>),
+            DataTable([]TableColumn{
+                Col(<span class="str">"name"</span>, <span class="str">"Device"</span>),
+                Col(<span class="str">"status"</span>, <span class="str">"Status"</span>),
+            }, rows),
+        ),
+    )
+}</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container footer-inner">
+      <span>&copy; Gopkin &mdash; Pure-Go Cross-Platform Framework (Zero CGO, Zero 3rd-Party Dependencies)</span>
+      <div class="footer-links">
+        <a href="https://github.com/CodersCircle/gopkin" target="_blank" rel="noopener">GitHub Repository</a>
+        <a href="#features">Features</a>
+        <a href="#quickstart">Quickstart</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      const commands = {
+        unix: "curl -fsSL https://raw.githubusercontent.com/CodersCircle/gopkin/main/install.sh | sh",
+        win: "irm https://raw.githubusercontent.com/CodersCircle/gopkin/main/install.ps1 | iex"
+      };
+      const cmdEl = document.getElementById("install-cmd");
+      const copyBtn = document.getElementById("copy-btn");
+      const tabs = document.querySelectorAll(".tab");
+
+      tabs.forEach(function (tab) {
+        tab.addEventListener("click", function () {
+          tabs.forEach(function (t) {
+            t.classList.remove("active");
+            t.setAttribute("aria-selected", "false");
+          });
+          tab.classList.add("active");
+          tab.setAttribute("aria-selected", "true");
+          cmdEl.textContent = commands[tab.dataset.tab] || commands.unix;
+          copyBtn.textContent = "Copy";
+        });
+      });
+
+      copyBtn.addEventListener("click", function () {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(cmdEl.textContent).then(function () {
+            copyBtn.textContent = "Copied!";
+            setTimeout(function () { copyBtn.textContent = "Copy"; }, 1800);
+          });
+        }
+      });
+
+      const root = document.documentElement;
+      const toggle = document.getElementById("theme-toggle");
+      function applyTheme(theme) {
+        root.setAttribute("data-theme", theme);
+        toggle.textContent = theme === "dark" ? "Light" : "Dark";
+        try { localStorage.setItem("gopkin-theme", theme); } catch (_) {}
+      }
+      let saved = null;
+      try { saved = localStorage.getItem("gopkin-theme"); } catch (_) {}
+      if (saved === "dark" || (!saved && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+        applyTheme("dark");
+      } else {
+        applyTheme("light");
+      }
+      toggle.addEventListener("click", function () {
+        applyTheme(root.getAttribute("data-theme") === "dark" ? "light" : "dark");
+      });
+    })();
+  </script>
+</body>
+</html>
