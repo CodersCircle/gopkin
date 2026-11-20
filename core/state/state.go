@@ -15,9 +15,17 @@ type State[T any] struct {
 	subs   []subscriber[T]
 }
 
+// Signal is an alias for State for reactive signal-style usage.
+type Signal[T any] = State[T]
+
 // NewState creates a new reactive State initialized with initial.
 func NewState[T any](initial T) *State[T] {
 	return &State[T]{val: initial}
+}
+
+// NewSignal creates a new reactive Signal initialized with initial.
+func NewSignal[T any](initial T) *Signal[T] {
+	return NewState(initial)
 }
 
 // Get returns the current value in a thread-safe manner.

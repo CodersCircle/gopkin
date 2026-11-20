@@ -28,6 +28,22 @@ const (
 	EventDoubleClick
 	EventKeyDown
 	EventKeyUp
+	EventChar
+)
+
+// Normalized key names reported on EventKeyDown / EventKeyUp.
+const (
+	KeyBackspace = "Backspace"
+	KeyEnter     = "Enter"
+	KeyTab       = "Tab"
+	KeyEscape    = "Escape"
+	KeyLeft      = "Left"
+	KeyRight     = "Right"
+	KeyUp        = "Up"
+	KeyDown      = "Down"
+	KeyDelete    = "Delete"
+	KeyHome      = "Home"
+	KeyEnd       = "End"
 )
 
 // Event represents a normalized platform event.
@@ -37,6 +53,8 @@ type Event struct {
 	Width  int
 	Height int
 	Key    string
+	Rune   rune
+	Shift  bool
 }
 
 // Driver defines the strict platform abstraction boundary for OS windowing,

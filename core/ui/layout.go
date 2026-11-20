@@ -75,6 +75,9 @@ func (r *RowWidget) Render(driver platform.Driver) {
 }
 
 func (r *RowWidget) HandleEvent(ev platform.Event) bool {
+	if ev.Type == platform.EventKeyDown && ev.Key == platform.KeyTab {
+		return CycleFocus(r, ev.Shift)
+	}
 	for i := len(r.children) - 1; i >= 0; i-- {
 		if r.children[i].HandleEvent(ev) {
 			return true
@@ -149,6 +152,9 @@ func (c *ColumnWidget) Render(driver platform.Driver) {
 }
 
 func (c *ColumnWidget) HandleEvent(ev platform.Event) bool {
+	if ev.Type == platform.EventKeyDown && ev.Key == platform.KeyTab {
+		return CycleFocus(c, ev.Shift)
+	}
 	for i := len(c.children) - 1; i >= 0; i-- {
 		if c.children[i].HandleEvent(ev) {
 			return true
@@ -294,6 +300,9 @@ func (g *GridWidget) Render(driver platform.Driver) {
 }
 
 func (g *GridWidget) HandleEvent(ev platform.Event) bool {
+	if ev.Type == platform.EventKeyDown && ev.Key == platform.KeyTab {
+		return CycleFocus(g, ev.Shift)
+	}
 	for i := len(g.children) - 1; i >= 0; i-- {
 		if g.children[i].HandleEvent(ev) {
 			return true

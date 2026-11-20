@@ -10,8 +10,12 @@ import (
 
 // Core type aliases for ergonomic dot-import usage (`import . "gopkin"`).
 type (
-	Widget = ui.Widget
-	Driver = platform.Driver
+	Widget      = ui.Widget
+	Driver      = platform.Driver
+	Focusable   = ui.Focusable
+	FormField   = ui.FormField
+	TableColumn = ui.TableColumn
+	RowAction   = ui.RowAction
 )
 
 // Reactive state constructors.
@@ -19,6 +23,11 @@ type (
 // State creates a new thread-safe generic reactive state container.
 func State[T any](initial T) *state.State[T] {
 	return state.NewState(initial)
+}
+
+// Signal creates a new thread-safe generic reactive signal container.
+func Signal[T any](initial T) *state.Signal[T] {
+	return state.NewSignal(initial)
 }
 
 // Num creates a new thread-safe reactive float64 state container.
@@ -34,14 +43,26 @@ var (
 	Grid   = ui.Grid
 )
 
-// 1-liner widget builder re-exports.
+// 1-liner widget & Filament-style plug-and-play kit re-exports.
 var (
-	Heading = ui.Heading
-	Text    = ui.Text
-	Card    = ui.Card
-	Slider  = ui.Slider
-	Btn     = ui.Btn
-	Popup   = ui.Popup
+	Heading       = ui.Heading
+	Text          = ui.Text
+	Card          = ui.Card
+	Slider        = ui.Slider
+	Btn           = ui.Btn
+	Popup         = ui.Popup
+	TextInput     = ui.TextInput
+	Form          = ui.Form
+	TextField     = ui.TextField
+	PasswordField = ui.PasswordField
+	SelectField   = ui.SelectField
+	ToggleField   = ui.ToggleField
+	DataTable     = ui.DataTable
+	Col           = ui.Col
+	TableAction   = ui.TableAction
+	Badge         = ui.Badge
+	Toast         = ui.Toast
+	AuthCard      = ui.AuthCard
 )
 
 var (

@@ -84,6 +84,28 @@ func (m *MockDriver) PushEvent(ev Event) {
 	m.Events = append(m.Events, ev)
 }
 
+// PushClick queues a pointer click event at (x, y).
+func (m *MockDriver) PushClick(x, y float32) {
+	m.PushEvent(Event{Type: EventClick, X: x, Y: y})
+}
+
+// PushKeyDown queues a normalized key-down event (e.g. KeyBackspace, KeyEnter, KeyTab).
+func (m *MockDriver) PushKeyDown(key string) {
+	m.PushEvent(Event{Type: EventKeyDown, Key: key})
+}
+
+// PushChar queues a printable UTF-8 character input event.
+func (m *MockDriver) PushChar(r rune) {
+	m.PushEvent(Event{Type: EventChar, Rune: r})
+}
+
+// TypeText queues an EventChar for each rune in s.
+func (m *MockDriver) TypeText(s string) {
+	for _, r := range s {
+		m.PushChar(r)
+	}
+}
+
 // PollEvents returns and clears all queued events.
 func (m *MockDriver) PollEvents() []Event {
 	m.mu.Lock()
