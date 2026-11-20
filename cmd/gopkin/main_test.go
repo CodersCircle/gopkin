@@ -167,3 +167,42 @@ permissions:
 		t.Fatalf("expected iot run output to mention linux/arm64, got: %s", stdout.String())
 	}
 }
+
+func TestCLIBuildWebTargetGeneratesHTMLAndBinary(t *testing.T) {
+	base := t.TempDir()
+	appDir, err := ScaffoldProject(base, "WebDemo")
+	if err != nil {
+		t.Fatalf("ScaffoldProject failed: %v", err)
+	}
+
+	var stdout, stderr bytes.Buffer
+	if code := RunCLI([]string{"build", "-t", "web", appDir}, &stdout, &stderr); code != 0 {
+		t.Fatalf("gopkin build -t web failed (%d): %s", code, stderr.String())
+	}
+
+	indexPath := filepath.Join(appDir, "build", "web", "index.html")
+	htmlBytes, err := os.ReadFile(indexPath)
+	if err != nil {
+		t.Fatalf("expected build/web/index.html: %v", err)
+	}
+	htmlStr := string(htmlBytes)
+	if !strings.Contains(htmlStr, "<title>WebDemo</title>") || !strings.Contains(htmlStr, `<canvas id="gopkin-canvas"`) {
+		t.Fatalf("unexpected build/web/index.html content:\n%s", htmlStr)
+	}
+
+	// Verify the self-contained runnable web server binary was compiled.
+	entries, err := os.ReadDir(filepath.Join(appDir, "build", "web"))
+	if err != nil {
+		t.Fatalf("ReadDir build/web failed: %v", err)
+	}
+	foundBin := false
+	for _, e := range entries {
+		if strings.HasPrefix(e.Name(), "webdemo-web") {
+			foundBin = true
+			break
+		}
+	}
+	if !foundBin {
+		t.Fatalf("expected compiled web server binary in build/web/, found %v", entries)
+	}
+}

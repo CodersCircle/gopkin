@@ -6,11 +6,14 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
 
+	"gopkin"
 	"gopkin/core/config"
+	"gopkin/core/platform"
 )
 
 // TargetSpec describes a resolved Gopkin build/run target.
@@ -162,10 +165,12 @@ type BuildResult struct {
 	Target             TargetSpec
 	OutputDir          string
 	GeneratedManifests []string
+	Artifacts          []string
 }
 
 // BuildProject prepares build/<target>/ for projectDir, automatically generating
-// native AndroidManifest.xml (for android) or Info.plist (for ios) from gopkin.yaml.
+// native AndroidManifest.xml (for android), Info.plist (for ios), or a
+// self-contained web server binary + static index.html bundle (for web).
 func BuildProject(projectDir string, target TargetSpec) (BuildResult, error) {
 	ctx, err := ResolveProject(projectDir)
 	if err != nil {
@@ -190,6 +195,7 @@ func BuildProject(projectDir string, target TargetSpec) (BuildResult, error) {
 			return res, fmt.Errorf("write AndroidManifest.xml: %w", err)
 		}
 		res.GeneratedManifests = append(res.GeneratedManifests, dest)
+		res.Artifacts = append(res.Artifacts, dest)
 
 	case "ios":
 		plistContent := config.GenerateIOSInfoPlist(ctx.Manifest)
@@ -198,9 +204,111 @@ func BuildProject(projectDir string, target TargetSpec) (BuildResult, error) {
 			return res, fmt.Errorf("write Info.plist: %w", err)
 		}
 		res.GeneratedManifests = append(res.GeneratedManifests, dest)
+		res.Artifacts = append(res.Artifacts, dest)
+
+	case "web":
+		if err := buildWebBundle(ctx, outDir, &res); err != nil {
+			return res, err
+		}
 	}
 
 	return res, nil
+}
+
+func buildWebBundle(ctx ProjectContext, outDir string, res *BuildResult) error {
+	webDrv := platform.NewWebDriver("127.0.0.1:8080").SetMeta(platform.WebMeta{
+		Title:       ctx.Manifest.Name,
+		Description: ctx.Manifest.Name + " — Built with Gopkin",
+		AppID:       ctx.Manifest.ID,
+		Version:     ctx.Manifest.Version,
+	})
+
+	indexPath := filepath.Join(outDir, "index.html")
+	if err := os.WriteFile(indexPath, []byte(webDrv.RenderHTML()), 0o644); err != nil {
+		return fmt.Errorf("write web index.html: %w", err)
+	}
+	res.Artifacts = append(res.Artifacts, indexPath)
+
+	// Emit a zero-dependency stdlib Go web server that embeds index.html and
+	// compiles into a self-contained runnable binary.
+	goModContent := "module gopkin_web_bundle\n\ngo 1.22\n"
+	if err := os.WriteFile(filepath.Join(outDir, "go.mod"), []byte(goModContent), 0o644); err != nil {
+		return fmt.Errorf("write web go.mod: %w", err)
+	}
+
+	serverSrc := fmt.Sprintf(`package main
+
+import (
+	_ "embed"
+	"encoding/json"
+	"flag"
+	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"time"
+)
+
+//go:embed index.html
+var indexHTML string
+
+func main() {
+	addr := flag.String("addr", "127.0.0.1:8080", "HTTP listen address")
+	flag.Parse()
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = io.WriteString(w, indexHTML)
+	})
+	mux.HandleFunc("/frame", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"seq": 1, "width": 800, "height": 600,
+			"commands": []map[string]any{
+				{"op": "clear", "color": "#ffffff"},
+				{"op": "text", "x": 32, "y": 32, "text": %q, "size": 24, "color": "#000000"},
+			},
+		})
+	})
+	mux.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.Header().Set("Cache-Control", "no-cache")
+		<-r.Context().Done()
+	})
+	mux.HandleFunc("/event", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, "{\"ok\":true}")
+	})
+
+	srv := &http.Server{
+		Addr:              *addr,
+		Handler:           mux,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+	fmt.Printf("Serving %%s at http://%%s\n", %q, *addr)
+	log.Fatal(srv.ListenAndServe())
+}
+`, ctx.Manifest.Name, ctx.Manifest.Name)
+
+	mainPath := filepath.Join(outDir, "main.go")
+	if err := os.WriteFile(mainPath, []byte(serverSrc), 0o644); err != nil {
+		return fmt.Errorf("write web server main.go: %w", err)
+	}
+
+	binName := strings.ToLower(strings.ReplaceAll(ctx.Manifest.Name, " ", "_")) + "-web"
+	if runtime.GOOS == "windows" {
+		binName += ".exe"
+	}
+	binPath := filepath.Join(outDir, binName)
+
+	cmd := exec.Command("go", "build", "-o", binPath, ".")
+	cmd.Dir = outDir
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("compile web server binary: %w\n%s", err, string(out))
+	}
+	res.Artifacts = append(res.Artifacts, binPath)
+	return nil
 }
 
 // RunCLI executes the Gopkin CLI with args (excluding argv[0]) and returns an exit code.
@@ -251,32 +359,34 @@ func cmdNew(args []string, stdout, stderr io.Writer) int {
 	return 0
 }
 
-func parseTargetFlags(cmdName string, args []string, stderr io.Writer) (TargetSpec, string, error) {
+func parseTargetFlags(cmdName string, args []string, stderr io.Writer) (TargetSpec, string, int, error) {
 	fs := flag.NewFlagSet(cmdName, flag.ContinueOnError)
 	fs.SetOutput(stderr)
 
 	var targetFlag string
+	var port int
 	fs.StringVar(&targetFlag, "target", "desktop", "target platform (desktop, windows, darwin, linux, web, android, ios, iot)")
 	fs.StringVar(&targetFlag, "t", "desktop", "shorthand for --target")
+	fs.IntVar(&port, "port", 8080, "HTTP port for web target (default 8080)")
 
 	if err := fs.Parse(args); err != nil {
-		return TargetSpec{}, "", err
+		return TargetSpec{}, "", 0, err
 	}
 
 	spec, err := ParseTarget(targetFlag)
 	if err != nil {
-		return TargetSpec{}, "", err
+		return TargetSpec{}, "", 0, err
 	}
 
 	projectDir := "."
 	if fs.NArg() > 0 {
 		projectDir = fs.Arg(0)
 	}
-	return spec, projectDir, nil
+	return spec, projectDir, port, nil
 }
 
 func cmdBuild(args []string, stdout, stderr io.Writer) int {
-	spec, projectDir, err := parseTargetFlags("build", args, stderr)
+	spec, projectDir, _, err := parseTargetFlags("build", args, stderr)
 	if err != nil {
 		fmt.Fprintf(stderr, "gopkin build: %v\n", err)
 		return 1
@@ -289,14 +399,14 @@ func cmdBuild(args []string, stdout, stderr io.Writer) int {
 	}
 
 	fmt.Fprintf(stdout, "Built target %s (%s/%s) -> %s\n", res.Target.Name, res.Target.GOOS, res.Target.GOARCH, res.OutputDir)
-	for _, gen := range res.GeneratedManifests {
-		fmt.Fprintf(stdout, "  generated %s\n", gen)
+	for _, art := range res.Artifacts {
+		fmt.Fprintf(stdout, "  generated %s\n", art)
 	}
 	return 0
 }
 
 func cmdRun(args []string, stdout, stderr io.Writer) int {
-	spec, projectDir, err := parseTargetFlags("run", args, stderr)
+	spec, projectDir, port, err := parseTargetFlags("run", args, stderr)
 	if err != nil {
 		fmt.Fprintf(stderr, "gopkin run: %v\n", err)
 		return 1
@@ -306,6 +416,32 @@ func cmdRun(args []string, stdout, stderr io.Writer) int {
 	if err != nil {
 		fmt.Fprintf(stderr, "gopkin run: %v\n", err)
 		return 1
+	}
+
+	if spec.Name == "web" {
+		addr := fmt.Sprintf("127.0.0.1:%d", port)
+		webDrv := platform.NewWebDriver(addr).SetMeta(platform.WebMeta{
+			Title:       ctx.Manifest.Name,
+			Description: ctx.Manifest.Name + " — Built with Gopkin",
+			AppID:       ctx.Manifest.ID,
+			Version:     ctx.Manifest.Version,
+		})
+		fmt.Fprintf(stdout, "Live Web Target running at %s [app: %s, entry: %s]\n",
+			webDrv.URL(), ctx.Manifest.Name, ctx.EntryPath)
+
+		err := gopkin.RunWithDriver(webDrv, ctx.Manifest.Name,
+			gopkin.Center(
+				gopkin.Card(
+					gopkin.Heading(ctx.Manifest.Name),
+					gopkin.Text("Running on Gopkin Live Web Target.").Muted(),
+				),
+			),
+		)
+		if err != nil {
+			fmt.Fprintf(stderr, "gopkin run: %v\n", err)
+			return 1
+		}
+		return 0
 	}
 
 	if spec.Name == "android" || spec.Name == "ios" {

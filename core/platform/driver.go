@@ -5,6 +5,11 @@ type Color struct {
 	R, G, B, A uint8
 }
 
+// Point represents a 2D coordinate in logical pixels.
+type Point struct {
+	X, Y float32
+}
+
 // Gopkin Monochrome Design System palette constants.
 var (
 	ColorBlack        = Color{R: 0x00, G: 0x00, B: 0x00, A: 0xFF} // #000000
