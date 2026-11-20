@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"sync"
 	"syscall"
+	"time"
 	"unicode/utf16"
 	"unsafe"
 )
@@ -267,6 +268,7 @@ func (w *Win32Driver) RunLoop(onFrame func() bool) error {
 		if shouldQuit || !keepRunning {
 			break
 		}
+		time.Sleep(16 * time.Millisecond)
 	}
 	return nil
 }

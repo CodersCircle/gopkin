@@ -86,6 +86,7 @@ var (
 	Badge         = ui.Badge
 	Toast         = ui.Toast
 	AuthCard      = ui.AuthCard
+	StarterScreen = ui.StarterScreen
 )
 
 var (

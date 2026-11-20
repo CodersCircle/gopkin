@@ -600,6 +600,13 @@ func (cg *codeGen) emitWidget(n *gpkNode) (string, error) {
 		}
 		return fmt.Sprintf("AuthCard(%q, func(email, password string) error { return nil })", title), nil
 
+	case "StarterScreen":
+		title := "Gopkin App"
+		if len(n.posArgs) > 0 && n.posArgs[0].str != "" {
+			title = n.posArgs[0].str
+		}
+		return fmt.Sprintf("StarterScreen(%q)", title), nil
+
 	default:
 		return "", fmt.Errorf("lang: unsupported widget %q", n.name)
 	}

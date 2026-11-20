@@ -15,6 +15,7 @@ import (
 	"gopkin/core/config"
 	"gopkin/core/lang"
 	"gopkin/core/platform"
+	"gopkin/core/ui"
 )
 
 // TargetSpec describes a resolved Gopkin build/run target.
@@ -147,13 +148,9 @@ func ScaffoldProject(baseDir, appName string) (string, error) {
 
 func starterMainGPK(appName string) string {
 	return fmt.Sprintf(`app %q {
-    Page(%q) {
-        Card(%q) {
-            Text("Ready to build with Gopkin.")
-        }
-    }
+    StarterScreen(%q)
 }
-`, appName, appName, appName)
+`, appName, appName)
 }
 
 // BuildResult describes artifacts produced by BuildProject.
@@ -520,25 +517,15 @@ func cmdRun(args []string, stdout, stderr io.Writer) int {
 	}
 
 	if spec.Name == "web" {
-		addr := fmt.Sprintf("127.0.0.1:%d", port)
-		webDrv := platform.NewWebDriver(addr).SetMeta(platform.WebMeta{
-			Title:       ctx.Manifest.Name,
-			Description: ctx.Manifest.Name + " — Built with Gopkin",
-			AppID:       ctx.Manifest.ID,
-			Version:     ctx.Manifest.Version,
-		})
-		fmt.Fprintf(stdout, "Live Web Target running at %s [app: %s, entry: %s]\n",
-			webDrv.URL(), ctx.Manifest.Name, ctx.EntryPath)
+		if err := runWebTarget(ctx, port, stdout); err != nil {
+			fmt.Fprintf(stderr, "gopkin run: %v\n", err)
+			return 1
+		}
+		return 0
+	}
 
-		err := gopkin.RunWithDriver(webDrv, ctx.Manifest.Name,
-			gopkin.Center(
-				gopkin.Card(
-					gopkin.Heading(ctx.Manifest.Name),
-					gopkin.Text("Running on Gopkin Live Web Target.").Muted(),
-				),
-			),
-		)
-		if err != nil {
+	if spec.Name == "desktop" || spec.Name == runtime.GOOS {
+		if err := runDesktopTarget(ctx, stdout); err != nil {
 			fmt.Fprintf(stderr, "gopkin run: %v\n", err)
 			return 1
 		}
@@ -555,6 +542,28 @@ func cmdRun(args []string, stdout, stderr io.Writer) int {
 	fmt.Fprintf(stdout, "Running %s (%s) on target %s (%s/%s) [entry: %s]\n",
 		ctx.Manifest.Name, ctx.Manifest.ID, spec.Name, spec.GOOS, spec.GOARCH, ctx.EntryPath)
 	return 0
+}
+
+func runWebTarget(ctx ProjectContext, port int, stdout io.Writer) error {
+	addr := fmt.Sprintf("127.0.0.1:%d", port)
+	webDrv := platform.NewWebDriver(addr).SetMeta(platform.WebMeta{
+		Title:       ctx.Manifest.Name,
+		Description: ctx.Manifest.Name + " — Built with Gopkin",
+		AppID:       ctx.Manifest.ID,
+		Version:     ctx.Manifest.Version,
+	})
+	fmt.Fprintf(stdout, "Live Web Target running at %s [app: %s, entry: %s]\n",
+		webDrv.URL(), ctx.Manifest.Name, ctx.EntryPath)
+
+	return gopkin.RunWithDriver(webDrv, ctx.Manifest.Name, ui.StarterScreen(ctx.Manifest.Name))
+}
+
+func runDesktopTarget(ctx ProjectContext, stdout io.Writer) error {
+	fmt.Fprintf(stdout, "Running %s (%s) on desktop (%s/%s) [entry: %s]\n",
+		ctx.Manifest.Name, ctx.Manifest.ID, runtime.GOOS, runtime.GOARCH, ctx.EntryPath)
+
+	drv := platform.NewDefaultDriver()
+	return gopkin.RunWithDriver(drv, ctx.Manifest.Name, ui.StarterScreen(ctx.Manifest.Name))
 }
 
 func printUsage(w io.Writer) {
