@@ -10,12 +10,35 @@ import (
 
 // Core type aliases for ergonomic dot-import usage (`import . "gopkin"`).
 type (
-	Widget      = ui.Widget
-	Driver      = platform.Driver
-	Focusable   = ui.Focusable
-	FormField   = ui.FormField
-	TableColumn = ui.TableColumn
-	RowAction   = ui.RowAction
+	Widget            = ui.Widget
+	Driver            = platform.Driver
+	Focusable         = ui.Focusable
+	FormField         = ui.FormField
+	TableColumn       = ui.TableColumn
+	RowAction         = ui.RowAction
+	Permission        = platform.Permission
+	PermissionStatus  = platform.PermissionStatus
+	PermissionHandler = platform.PermissionHandler
+)
+
+// Unified cross-platform permission constants & statuses.
+const (
+	PermLocation      = platform.PermLocation
+	PermCamera        = platform.PermCamera
+	PermBluetooth     = platform.PermBluetooth
+	PermNotifications = platform.PermNotifications
+	PermStorage       = platform.PermStorage
+
+	Granted = platform.Granted
+	Denied  = platform.Denied
+	Prompt  = platform.Prompt
+)
+
+// Unified permission helpers.
+var (
+	AskPermission        = platform.AskPermission
+	CheckPermission      = platform.CheckPermission
+	SetPermissionHandler = platform.SetPermissionHandler
 )
 
 // Reactive state constructors.

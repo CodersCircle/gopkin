@@ -49,3 +49,43 @@ func TestMockDriverLifecycleAndDrawing(t *testing.T) {
 	}
 }
 
+func TestUnifiedPermissionsAPI(t *testing.T) {
+	// Default desktop behavior: starts as Prompt, transitions to Granted on AskPermission.
+	ResetPermissionHandler()
+	defer ResetPermissionHandler()
+
+	if st := CheckPermission(PermLocation); st != Prompt {
+		t.Fatalf("expected initial CheckPermission(PermLocation) == Prompt, got %q", st)
+	}
+	if st := AskPermission(PermLocation); st != Granted {
+		t.Fatalf("expected AskPermission(PermLocation) == Granted, got %q", st)
+	}
+	if st := CheckPermission(PermLocation); st != Granted {
+		t.Fatalf("expected subsequent CheckPermission(PermLocation) == Granted, got %q", st)
+	}
+
+	// Custom mock handler supporting Granted, Denied, and dynamic Ask callbacks.
+	mock := NewMockPermissionHandler()
+	mock.States[PermCamera] = Denied
+	mock.OnAsk = func(perm Permission) PermissionStatus {
+		if perm == PermBluetooth {
+			return Denied
+		}
+		return Granted
+	}
+	SetPermissionHandler(mock)
+
+	if st := CheckPermission(PermCamera); st != Denied {
+		t.Fatalf("expected mock CheckPermission(PermCamera) == Denied, got %q", st)
+	}
+	if st := AskPermission(PermBluetooth); st != Denied {
+		t.Fatalf("expected mock AskPermission(PermBluetooth) == Denied, got %q", st)
+	}
+	if st := AskPermission(PermNotifications); st != Granted {
+		t.Fatalf("expected mock AskPermission(PermNotifications) == Granted, got %q", st)
+	}
+	if len(mock.Asked) != 2 || mock.Asked[0] != PermBluetooth || mock.Asked[1] != PermNotifications {
+		t.Fatalf("unexpected Asked log: %+v", mock.Asked)
+	}
+}
+
