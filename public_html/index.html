@@ -134,16 +134,28 @@
       margin-bottom: 36px;
     }
     .platform-tag {
-      padding: 5px 12px;
-      border-radius: 6px;
-      font-size: 0.82rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 13px;
+      border-radius: 8px;
+      font-size: 0.84rem;
       font-weight: 600;
+      color: var(--text);
       background: var(--surface);
       border: 1px solid var(--border);
+      cursor: default;
+      transition: border-color 0.18s ease, color 0.18s ease, transform 0.15s ease;
     }
-    .platform-tag.highlight {
+    .platform-tag svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+    .platform-tag:hover {
       border-color: var(--accent);
       color: var(--accent);
+      transform: translateY(-1px);
     }
     .cta-row {
       display: flex;
@@ -310,6 +322,75 @@
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
       gap: 20px;
+      align-items: start;
+    }
+    .code-grid > * { min-width: 0; }
+    .cmd-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-width: 0;
+    }
+    .cmd-item {
+      background: var(--surface-elevated);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      min-width: 0;
+    }
+    .cmd-label {
+      padding: 8px 14px;
+      font-size: 0.8rem;
+      font-weight: 650;
+      color: var(--muted);
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+    .cmd-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      background: var(--code-bg);
+      color: var(--code-text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.86rem;
+      overflow-x: auto;
+      min-width: 0;
+    }
+    .cmd-bar code {
+      white-space: nowrap;
+      overflow-x: auto;
+      min-width: 0;
+    }
+    .build-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      padding: 8px 10px 6px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+    .build-tab {
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      padding: 4px 9px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-weight: 650;
+      cursor: pointer;
+      transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+    }
+    .build-tab:hover {
+      color: var(--accent);
+      border-color: var(--border);
+    }
+    .build-tab.active {
+      color: #ffffff;
+      background: var(--accent);
+      border-color: var(--accent);
     }
     .code-panel {
       background: var(--code-bg);
@@ -317,8 +398,13 @@
       border-radius: 14px;
       border: 1px solid var(--border);
       overflow: hidden;
+      min-width: 0;
+      max-width: 100%;
     }
     .code-panel-hdr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       padding: 10px 16px;
       font-size: 0.8rem;
       font-weight: 650;
@@ -329,6 +415,7 @@
     pre {
       padding: 18px;
       overflow-x: auto;
+      max-width: 100%;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       font-size: 0.85rem;
       line-height: 1.55;
@@ -393,14 +480,82 @@
         </p>
 
         <div class="platforms">
-          <span class="platform-tag highlight">Android</span>
-          <span class="platform-tag highlight">iOS</span>
-          <span class="platform-tag">Windows</span>
-          <span class="platform-tag">Web</span>
-          <span class="platform-tag">macOS</span>
-          <span class="platform-tag">Linux</span>
-          <span class="platform-tag highlight">BOSS Linux</span>
-          <span class="platform-tag">IoT (ARM64)</span>
+          <span class="platform-tag">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M5 10a7 7 0 0 1 14 0v1H5v-1z"/>
+              <line x1="8.5" y1="3.5" x2="10" y2="5.5"/>
+              <line x1="15.5" y1="3.5" x2="14" y2="5.5"/>
+              <circle cx="9.5" cy="8.5" r="0.8" fill="currentColor" stroke="none"/>
+              <circle cx="14.5" cy="8.5" r="0.8" fill="currentColor" stroke="none"/>
+              <rect x="6" y="11" width="12" height="8" rx="2"/>
+              <line x1="9.5" y1="19" x2="9.5" y2="21.5"/>
+              <line x1="14.5" y1="19" x2="14.5" y2="21.5"/>
+            </svg>
+            Android
+          </span>
+          <span class="platform-tag">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="6" y="2.5" width="12" height="19" rx="2.5"/>
+              <line x1="10" y1="5.5" x2="14" y2="5.5"/>
+              <circle cx="12" cy="18.2" r="0.9" fill="currentColor" stroke="none"/>
+            </svg>
+            iOS
+          </span>
+          <span class="platform-tag">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="3" width="8" height="8" rx="1"/>
+              <rect x="13" y="3" width="8" height="8" rx="1"/>
+              <rect x="3" y="13" width="8" height="8" rx="1"/>
+              <rect x="13" y="13" width="8" height="8" rx="1"/>
+            </svg>
+            Windows
+          </span>
+          <span class="platform-tag">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="9"/>
+              <ellipse cx="12" cy="12" rx="4" ry="9"/>
+              <line x1="3.5" y1="9" x2="20.5" y2="9"/>
+              <line x1="3.5" y1="15" x2="20.5" y2="15"/>
+            </svg>
+            Web
+          </span>
+          <span class="platform-tag">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="4" y="4.5" width="16" height="11.5" rx="2"/>
+              <line x1="2" y1="19" x2="22" y2="19"/>
+            </svg>
+            macOS
+          </span>
+          <span class="platform-tag">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="4" width="18" height="16" rx="2.5"/>
+              <polyline points="7.5 9.5 10.5 12 7.5 14.5"/>
+              <line x1="12.5" y1="14.5" x2="16.5" y2="14.5"/>
+            </svg>
+            Linux
+          </span>
+          <span class="platform-tag">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 3l7 3v5.5c0 4.5-3 8.1-7 9.5-4-1.4-7-5-7-9.5V6l7-3z"/>
+              <polyline points="9 12 11 14 15.5 9.5"/>
+            </svg>
+            BOSS Linux
+          </span>
+          <span class="platform-tag">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="7" y="7" width="10" height="10" rx="1.5"/>
+              <rect x="10" y="10" width="4" height="4" rx="0.5"/>
+              <line x1="9" y1="3" x2="9" y2="7"/>
+              <line x1="15" y1="3" x2="15" y2="7"/>
+              <line x1="9" y1="17" x2="9" y2="21"/>
+              <line x1="15" y1="17" x2="15" y2="21"/>
+              <line x1="3" y1="9" x2="7" y2="9"/>
+              <line x1="3" y1="15" x2="7" y2="15"/>
+              <line x1="17" y1="9" x2="21" y2="9"/>
+              <line x1="17" y1="15" x2="21" y2="15"/>
+            </svg>
+            IoT (ARM64)
+          </span>
         </div>
 
         <div class="cta-row">
@@ -503,30 +658,56 @@
         <p class="section-sub">Clean <code>gopkin.yaml</code> + <code>app/main.gpk</code> layout with zero native folder clutter.</p>
 
         <div class="code-grid">
-          <div class="code-panel">
-            <div class="code-panel-hdr">Terminal</div>
-            <pre><span class="cm"># 1. Scaffold a clean cross-platform app</span>
-gopkin new MyApp
-cd MyApp
+          <div class="cmd-stack">
+            <div class="cmd-item">
+              <div class="cmd-label">Step 1 &mdash; Create a new app</div>
+              <div class="cmd-bar">
+                <code>gopkin new MyApp</code>
+                <button class="copy-btn js-copy" type="button">Copy</button>
+              </div>
+            </div>
 
-<span class="cm"># 2. Run locally (Desktop or Live Web)</span>
-gopkin run
-gopkin run -t web
+            <div class="cmd-item">
+              <div class="cmd-label">Step 2 &mdash; Run on Desktop</div>
+              <div class="cmd-bar">
+                <code>gopkin run</code>
+                <button class="copy-btn js-copy" type="button">Copy</button>
+              </div>
+            </div>
 
-<span class="cm"># 3. Build for every target in priority order</span>
-gopkin build -t android
-gopkin build -t ios
-gopkin build -t windows
-gopkin build -t web
-gopkin build -t darwin
-gopkin build -t linux
-gopkin build -t boss
-gopkin build -t iot</pre>
+            <div class="cmd-item">
+              <div class="cmd-label">Step 3 &mdash; Run live in Browser</div>
+              <div class="cmd-bar">
+                <code>gopkin run -t web</code>
+                <button class="copy-btn js-copy" type="button">Copy</button>
+              </div>
+            </div>
+
+            <div class="cmd-item">
+              <div class="cmd-label">Step 4 &mdash; Build for any platform</div>
+              <div class="build-tabs" role="tablist">
+                <button class="build-tab active" type="button" data-build-target="android">Android</button>
+                <button class="build-tab" type="button" data-build-target="ios">iOS</button>
+                <button class="build-tab" type="button" data-build-target="windows">Windows</button>
+                <button class="build-tab" type="button" data-build-target="web">Web</button>
+                <button class="build-tab" type="button" data-build-target="darwin">macOS</button>
+                <button class="build-tab" type="button" data-build-target="linux">Linux</button>
+                <button class="build-tab" type="button" data-build-target="boss">BOSS Linux</button>
+                <button class="build-tab" type="button" data-build-target="iot">IoT</button>
+              </div>
+              <div class="cmd-bar">
+                <code id="build-cmd">gopkin build -t android</code>
+                <button class="copy-btn js-copy" type="button">Copy</button>
+              </div>
+            </div>
           </div>
 
           <div class="code-panel">
-            <div class="code-panel-hdr">app/main.gpk</div>
-            <pre><span class="kw">package</span> main
+            <div class="code-panel-hdr">
+              <span>app/main.gpk</span>
+              <button class="copy-btn js-copy-pre" type="button">Copy</button>
+            </div>
+            <pre><code><span class="kw">package</span> main
 
 <span class="kw">import</span> (
     . <span class="str">"gopkin"</span>
@@ -535,7 +716,9 @@ gopkin build -t iot</pre>
 
 <span class="kw">func</span> main() {
     _ = db.Connect(db.LocalSQL(<span class="str">"app_data.db"</span>))
-    rows, _ := db.Table(<span class="str">"devices"</span>).OrderBy(<span class="str">"id"</span>, <span class="str">"DESC"</span>).Get()
+    rows, _ := db.Table(<span class="str">"devices"</span>).
+        OrderBy(<span class="str">"id"</span>, <span class="str">"DESC"</span>).
+        Get()
 
     Run(<span class="str">"MyApp"</span>,
         Column(
@@ -546,7 +729,7 @@ gopkin build -t iot</pre>
             }, rows),
         ),
     )
-}</pre>
+}</code></pre>
           </div>
         </div>
       </div>
@@ -594,13 +777,41 @@ gopkin build -t iot</pre>
       });
       selectTab("win");
 
-      copyBtn.addEventListener("click", function () {
+      function copyText(btn, text) {
         if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(cmdEl.textContent).then(function () {
-            copyBtn.textContent = "Copied!";
-            setTimeout(function () { copyBtn.textContent = "Copy"; }, 1800);
+          navigator.clipboard.writeText(text).then(function () {
+            btn.textContent = "Copied!";
+            setTimeout(function () { btn.textContent = "Copy"; }, 1800);
           });
         }
+      }
+
+      copyBtn.addEventListener("click", function () {
+        copyText(copyBtn, cmdEl.textContent);
+      });
+
+      document.querySelectorAll(".js-copy").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          const code = btn.parentElement.querySelector("code");
+          if (code) copyText(btn, code.textContent);
+        });
+      });
+
+      document.querySelectorAll(".js-copy-pre").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          const code = btn.closest(".code-panel").querySelector("pre code");
+          if (code) copyText(btn, code.textContent);
+        });
+      });
+
+      const buildCmdEl = document.getElementById("build-cmd");
+      const buildTabs = document.querySelectorAll(".build-tab");
+      buildTabs.forEach(function (tab) {
+        tab.addEventListener("click", function () {
+          buildTabs.forEach(function (t) { t.classList.remove("active"); });
+          tab.classList.add("active");
+          buildCmdEl.textContent = "gopkin build -t " + tab.dataset.buildTarget;
+        });
       });
 
       const root = document.documentElement;
