@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gopkin Documentation — Pure-Go Cross-Platform Framework</title>
+  <meta name="description" content="Complete documentation for Gopkin: installation, gopkin.yaml project structure, Filament-style UI Kit, Dual-SQL backend, unified permissions, multi-platform targets, and IoT GPIO/MQTT.">
+  <style>
+    :root {
+      --bg: #ffffff;
+      --surface: #f5f6f8;
+      --surface-elevated: #ffffff;
+      --text: #0a0a0a;
+      --muted: #5a5f6b;
+      --border: #e2e5eb;
+      --accent: #1B4EF5;
+      --accent-hover: #133fd4;
+      --code-bg: #0f1117;
+      --code-text: #f1f5f9;
+    }
+    [data-theme="dark"] {
+      --bg: #090b10;
+      --surface: #121620;
+      --surface-elevated: #161b26;
+      --text: #f8fafc;
+      --muted: #9aa3b5;
+      --border: #252c3b;
+      --accent: #3b6bff;
+      --accent-hover: #1B4EF5;
+      --code-bg: #05070b;
+      --code-text: #e2e8f0;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+    a { color: inherit; text-decoration: none; }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.88em;
+      background: var(--surface);
+      padding: 2px 6px;
+      border-radius: 5px;
+    }
+    pre code { background: transparent; padding: 0; font-size: 0.86rem; }
+
+    /* Header */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 1.12rem;
+      letter-spacing: -0.02em;
+    }
+    .brand-badge {
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--accent);
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      font-size: 0.92rem;
+      color: var(--muted);
+    }
+    .nav-links a:hover { color: var(--text); }
+    .theme-btn {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .theme-btn:hover { border-color: var(--accent); }
+
+    /* Docs Layout */
+    .layout {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: grid;
+      grid-template-columns: 250px minmax(0, 1fr);
+      gap: 40px;
+      align-items: start;
+    }
+    aside {
+      position: sticky;
+      top: 84px;
+      padding: 16px 0 32px;
+      max-height: calc(100vh - 96px);
+      overflow-y: auto;
+    }
+    .side-title {
+      font-size: 0.74rem;
+      font-weight: 750;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 10px;
+      padding-left: 10px;
+    }
+    .side-nav {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .side-nav a {
+      display: block;
+      padding: 7px 10px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      color: var(--muted);
+      font-weight: 500;
+    }
+    .side-nav a:hover, .side-nav a.active {
+      background: var(--surface);
+      color: var(--accent);
+      font-weight: 650;
+    }
+
+    /* Main Content */
+    main {
+      padding: 36px 0 80px;
+      min-width: 0;
+    }
+    section {
+      padding-bottom: 44px;
+      margin-bottom: 44px;
+      border-bottom: 1px solid var(--border);
+      scroll-margin-top: 84px;
+    }
+    section:last-of-type { border-bottom: none; }
+    h1 {
+      font-size: 2.25rem;
+      font-weight: 850;
+      letter-spacing: -0.03em;
+      margin-bottom: 12px;
+    }
+    h2 {
+      font-size: 1.55rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+    }
+    h3 {
+      font-size: 1.08rem;
+      font-weight: 720;
+      margin: 22px 0 8px;
+    }
+    p {
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+    ul.bullets {
+      margin: 0 0 16px 20px;
+      color: var(--muted);
+    }
+    ul.bullets li { margin-bottom: 6px; }
+
+    /* Code Blocks with Copy Button */
+    .code-wrap {
+      position: relative;
+      background: var(--code-bg);
+      color: var(--code-text);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin: 14px 0 20px;
+      overflow: hidden;
+    }
+    .code-hdr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 14px;
+      background: rgba(255, 255, 255, 0.03);
+      border-bottom: 1px solid #1e293b;
+      font-size: 0.78rem;
+      color: #94a3b8;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    .copy-code {
+      background: #1e2433;
+      color: #ffffff;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 0.74rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .copy-code:hover { background: var(--accent); border-color: var(--accent); }
+    pre {
+      padding: 16px;
+      overflow-x: auto;
+      line-height: 1.55;
+    }
+
+    /* Tables */
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin: 14px 0 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+      text-align: left;
+    }
+    th, td {
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      background: var(--surface);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+    }
+    tr:last-child td { border-bottom: none; }
+
+    /* Callout */
+    .callout {
+      padding: 14px 16px;
+      border-left: 3px solid var(--accent);
+      background: var(--surface);
+      border-radius: 0 10px 10px 0;
+      margin: 14px 0 20px;
+      font-size: 0.92rem;
+      color: var(--text);
+    }
+
+    /* Install Tabs */
+    .tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: -14px;
+      padding-left: 4px;
+    }
+    .tab {
+      border: 1px solid var(--border);
+      border-bottom: none;
+      background: var(--surface);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 8px 8px 0 0;
+      font-size: 0.84rem;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    .tab.active {
+      background: var(--code-bg);
+      color: #ffffff;
+      border-color: var(--border);
+    }
+
+    @media (max-width: 860px) {
+      .layout { grid-template-columns: 1fr; gap: 0; }
+      aside {
+        position: static;
+        max-height: none;
+        border-bottom: 1px solid var(--border);
+        padding: 14px 0;
+      }
+      .side-nav { flex-direction: row; flex-wrap: wrap; gap: 6px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="nav">
+      <a href="index.html" class="brand">
+        <svg width="26" height="26" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <polygon points="16,2 29,9.5 16,17 3,9.5" fill="#1B4EF5"/>
+          <polygon points="3,9.5 16,17 16,30 3,22.5" fill="#0F172A"/>
+          <polygon points="29,9.5 29,22.5 16,30 16,17" fill="#3B6BFF"/>
+          <circle cx="16" cy="17" r="2.2" fill="#FFFFFF"/>
+        </svg>
+        <span>Gopkin</span>
+        <span class="brand-badge">Docs</span>
+      </a>
+      <nav class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="https://github.com/CodersCircle/gopkin" target="_blank" rel="noopener">GitHub</a>
+        <button id="theme-toggle" class="theme-btn" type="button">Dark</button>
+      </nav>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside aria-label="Documentation navigation">
+      <div class="side-title">Documentation</div>
+      <ul class="side-nav">
+        <li><a href="#getting-started" class="active">Getting Started</a></li>
+        <li><a href="#project-structure">Project Structure</a></li>
+        <li><a href="#ui-kit">UI &amp; Filament Kit</a></li>
+        <li><a href="#dual-sql">Dual-SQL Backend</a></li>
+        <li><a href="#permissions">Unified Permissions</a></li>
+        <li><a href="#targets">Multi-Platform Targets</a></li>
+        <li><a href="#iot-hardware">IoT &amp; Hardware Kit</a></li>
+      </ul>
+    </aside>
+
+    <main>
+      <section id="getting-started">
+        <h1>Gopkin Documentation</h1>
+        <p>
+          Gopkin is a 100% Pure-Go, zero-CGO, zero-external-dependency framework for shipping native apps across
+          <strong>Android, iOS, Windows, Web, macOS, Linux, BOSS Linux, and IoT (ARM64)</strong> from a single codebase.
+        </p>
+
+        <h3>1-Line CLI Installation</h3>
+        <div class="tabs" role="tablist">
+          <button class="tab active" type="button" data-install-tab="win">Windows PowerShell</button>
+          <button class="tab" type="button" data-install-tab="unix">macOS / Linux / BOSS</button>
+        </div>
+        <div class="code-wrap">
+          <div class="code-hdr">
+            <span id="docs-install-label">PowerShell</span>
+            <button class="copy-code" type="button">Copy</button>
+          </div>
+          <pre><code id="docs-install-cmd"></code></pre>
+        </div>
+
+        <h3>Create, Run &amp; Build</h3>
+        <div class="code-wrap">
+          <div class="code-hdr">
+            <span>Terminal</span>
+            <button class="copy-code" type="button">Copy</button>
+          </div>
+          <pre><code>gopkin new MyApp
+cd MyApp
+
+# Run on current Desktop OS or Live Web Target (http://127.0.0.1:8080)
+gopkin run
+gopkin run -t web
+
+# Build for any supported target
+gopkin build -t android
+gopkin build -t ios
+gopkin build -t windows
+gopkin build -t web
+gopkin build -t darwin
+gopkin build -t linux
+gopkin build -t boss
+gopkin build -t iot</code></pre>
+        </div>
+      </section>
+
+      <section id="project-structure">
+        <h2>Project Structure</h2>
+        <p>
+          <code>gopkin new MyApp</code> scaffolds a minimal, clutter-free layout. Native mobile manifests,
+          Gradle/Swift host bundles, web bundles, and BOSS Linux packages are generated strictly inside
+          <code>build/&lt;target&gt;/</code> at build time.
+        </p>
+
+        <div class="code-wrap">
+          <div class="code-hdr">
+            <span>Directory Layout</span>
+            <button class="copy-code" type="button">Copy</button>
+          </div>
+          <pre><code>MyApp/
+├── gopkin.yaml      # App name, bundle ID, version, entry, and unified permissions
+└── app/
+    └── main.gpk     # Declarative Pure-Go UI entry point</code></pre>
+        </div>
+
+        <div class="callout">
+          <strong>Backwards Compatibility:</strong> Projects using a legacy root <code>app.gpk</code> continue to resolve automatically.
+        </div>
+
+        <h3>Example <code>gopkin.yaml</code></h3>
+        <div class="code-wrap">
+          <div class="code-hdr">
+            <span>gopkin.yaml</span>
+            <button class="copy-code" type="button">Copy</button>
+          </div>
+          <pre><code>name: FieldScanner
+id: com.example.fieldscanner
+version: 1.0.0
+entry: app/main.gpk
+permissions:
+  location: "Used to find nearby services"
+  camera: "Used to scan QR codes"
+  bluetooth: "Connect to smart sensors"
+  notifications: "Deliver real-time alerts"
+  storage: "Save offline device data"</code></pre>
+        </div>
+      </section>
+
+      <section id="ui-kit">
+        <h2>UI &amp; Filament-Style Plug-and-Play Kit</h2>
+        <p>
+          Gopkin ships with reactive state (<code>State[T]</code> / <code>Signal[T]</code> / <code>Num</code>),
+          layouts (<code>Row</code>, <code>Column</code>, <code>Center</code>, <code>Grid</code>),
+          native keyboard &amp; focus management (<code>TextInput</code>), and high-level CRUD components
+          (<code>Form</code>, <code>DataTable</code>, <code>AuthCard</code>, <code>Badge</code>, <code>Toast</code>),
+          plus crisp monochrome styling and adaptive icons/surfaces.
+        </p>
+
+        <h3>Interactive TextInput &amp; Declarative Form</h3>
+        <div class="code-wrap">
+          <div class="code-hdr">
+            <span>app/main.gpk</span>
+            <button class="copy-code" type="button">Copy</button>
+          </div>
+          <pre><code>package main
+
+import (
+    . "gopkin"
+    "gopkin/backend/db"
+)
+
+func main() {
+    _ = db.Connect(db.LocalSQL("app_data.db"))
+
+    deviceForm := Form(
+        TextField("name", "Device Name").Placeholder("Living Room Light").Required(),
+        SelectField("status", "Status", "on", "off"),
+        ToggleField("auto", "Auto Schedule", true),
+    ).SubmitLabel("Save Device").OnSubmit(func(vals map[string]string) error {
+        _, err := db.Table("devices").Insert(map[string]any{
+            "name":   vals["name"],
+            "status": vals["status"],
+        })
+        return err
+    })
+
+    Run("Devices", Center(Card(Heading("New Device"), deviceForm)))
+}</code></pre>
+        </div>
+
+        <h3>DataTable, Badge, Toast &amp; AuthCard</h3>
+        <div class="code-wrap">
+          <div class="code-hdr">
+            <span>CRUD Table &amp; Auth</span>
+            <button class="copy-code" type="button">Copy</button>
+          </div>
+          <pre><code>rows, _ := db.Table("devices").OrderBy("id", "DESC").Get()
+
+table := DataTable(
+    []TableColumn{
+        Col("id", "ID", 60),
+        Col("name", "Device"),
+        Col("status", "Status", 100),
+    },
+    rows,
+).PageSize(10).Actions(
+    TableAction("Delete", func(row map[string]any) {
+        _, _ = db.Table("devices").Where("id", row["id"]).Delete()
+    }),
+)
+
+statusBadge := Badge("Online", "success")
+notice := Toast("Synced with LocalSQL", "info")
+
+loginCard := AuthCard("Sign In", func(email, password string) error {
+    // Authenticate against backend/db or any external API
+    return nil
+})</code></pre>
+        </div>
+      </section>
+
+      <section id="dual-sql">
+        <h2>Dual-SQL Native Backend (<code>backend/db</code>)</h2>
+        <p>
+          One unified <code>Engine</code> interface and Fluent Query Builder powers offline-first embedded storage,
+          direct MySQL connections, and credential-safe HTTP proxy bridges — all in 100% Pure Go with zero CGO.
+        </p>
+
+        <div class="code-wrap">
+          <div class="code-hdr">
+            <span>Connection Modes</span>
+            <button class="copy-code" type="button">Copy</button>
+          </div>
+          <pre><code>import "gopkin/backend/db"
+
+// Mode 1: Pure-Go ACID-safe single-file embedded DB (Android, iOS, Desktop, IoT)
+_ = db.Connect(db.LocalSQL("app_data.db"))
+
+// Mode 2: Pure-Go MySQL wire-protocol client (XAMPP, Laragon, Cloud MySQL)
+_ = db.Connect(db.MySQL("user:pass@tcp(127.0.0.1:3306)/myapp"))
+
+// Mode 3: Secure HTTP/JSON MySQL Proxy (never embed DB credentials in mobile APKs)
+_ = db.Connect(db.MySQLProxy("https://db-bridge.myapp.com", "API_TOKEN"))</code></pre>
+        </div>
+
+        <h3>Fluent Query Builder</h3>
+        <div class="code-wrap">
+          <div class="code-hdr">
+            <span>CRUD Operations</span>
+            <button class="copy-code" type="button">Copy</button>
+          </div>
+          <pre><code>// Insert (auto-creates missing tables &amp; columns automatically)
+id, _ := db.Table("devices").Insert(map[string]any{
+    "name": "Light 1", "status": "on", "watts": 12,
+})
+
+// Filter (=, !=, &gt;, &lt;, &gt;=, &lt;=, LIKE), sort, and paginate
+rows, _ := db.Table("devices").
+    Where("status", "on").
+    Where("name", "LIKE", "%Light%").
+    OrderBy("id", "DESC").
+    Limit(20).
+    Offset(0).
+    Get()
+
+// Update &amp; Delete
+_, _ = db.Table("devices").Where("id", id).Update(map[string]any{"status": "off"})
+_, _ = db.Table("devices").Where("id", id).Delete()</code></pre>
+        </div>
+      </section>
+
+      <section id="permissions">
+        <h2>Unified Permissions API</h2>
+        <p>
+          Declare permissions once in <code>gopkin.yaml</code> and request them in Go with the same API across
+          all platforms. At build time, Gopkin automatically injects <code>&lt;uses-permission&gt;</code> entries
+          into <code>build/android/AndroidManifest.xml</code> and Apple privacy usage keys into
+          <code>build/ios/Info.plist</code>.
+        </p>
+
+        <div class="code-wrap">
+          <div class="code-hdr">
+            <span>Runtime Permission Check &amp; Prompt</span>
+            <button class="copy-code" type="button">Copy</button>
+          </div>
+          <pre><code>import . "gopkin"
+
+if CheckPermission(PermCamera) != Granted {
+    if AskPermission(PermCamera) == Granted {
+        // Camera permission granted
+    }
+}
+
+// Supported constants:
+// PermLocation, PermCamera, PermBluetooth, PermNotifications, PermStorage
+// Statuses: Granted, Denied, Prompt</code></pre>
+        </div>
+      </section>
+
+      <section id="targets">
+        <h2>Multi-Platform Targets</h2>
+        <p>Pass <code>-t</code> or <code>--target</code> to <code>gopkin run</code> and <code>gopkin build</code>:</p>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Platform</th>
+                <th>Flag</th>
+                <th>GOOS / GOARCH</th>
+                <th>Generated Artifacts</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>1</td><td><strong>Android</strong></td><td><code>-t android</code></td><td><code>android/arm64</code></td><td><code>build/android/AndroidManifest.xml</code>, <code>app/build.gradle</code>, <code>MainActivity.kt</code></td></tr>
+              <tr><td>2</td><td><strong>iOS</strong></td><td><code>-t ios</code></td><td><code>ios/arm64</code></td><td><code>build/ios/Info.plist</code>, <code>Sources/GopkinApp.swift</code></td></tr>
+              <tr><td>3</td><td><strong>Windows</strong></td><td><code>-t windows</code></td><td><code>windows/amd64</code></td><td>Pure-Go Win32 GUI driver (<code>user32</code>/<code>gdi32</code>, zero CGO)</td></tr>
+              <tr><td>4</td><td><strong>Web</strong></td><td><code>-t web</code></td><td><code>js/wasm</code> + Go HTTP</td><td><code>build/web/index.html</code> + self-contained HiDPI Canvas/SSE web server binary</td></tr>
+              <tr><td>5</td><td><strong>macOS</strong></td><td><code>-t darwin</code></td><td><code>darwin/arm64</code></td><td>Native macOS binary</td></tr>
+              <tr><td>6</td><td><strong>Linux</strong></td><td><code>-t linux</code></td><td><code>linux/amd64</code></td><td>Static zero-CGO Linux binary</td></tr>
+              <tr><td>7</td><td><strong>BOSS Linux</strong></td><td><code>-t boss</code> / <code>-t bos</code></td><td><code>linux/amd64</code></td><td>Static ELF binary, <code>build/boss/&lt;app&gt;.desktop</code>, <code>build/boss/DEBIAN/control</code></td></tr>
+              <tr><td>8</td><td><strong>IoT (ARM64)</strong></td><td><code>-t iot</code></td><td><code>linux/arm64</code></td><td>Raspberry Pi / ARM64 SBC binary with GPIO &amp; MQTT</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="iot-hardware">
+        <h2>IoT &amp; Hardware Kit (<code>hardware/</code>)</h2>
+        <p>
+          Control physical GPIO pins and connect to MQTT brokers using 100% Pure Go.
+          <code>hardware.OpenGPIO()</code> automatically uses Linux sysfs (<code>/sys/class/gpio</code>) on
+          Raspberry Pi / Linux SBCs and falls back to <code>MockGPIO</code> on Windows/macOS.
+        </p>
+
+        <h3>Pure-Go GPIO</h3>
+        <div class="code-wrap">
+          <div class="code-hdr">
+            <span>hardware/gpio</span>
+            <button class="copy-code" type="button">Copy</button>
+          </div>
+          <pre><code>import "gopkin/hardware"
+
+gpio := hardware.OpenGPIO()
+defer gpio.Close()
+
+_ = gpio.PinMode(17, hardware.PinOutput)
+_ = gpio.DigitalWrite(17, hardware.High)
+level, _ := gpio.Toggle(17)</code></pre>
+        </div>
+
+        <h3>Pure-Go MQTT v3.1.1 Client</h3>
+        <div class="code-wrap">
+          <div class="code-hdr">
+            <span>hardware/mqtt</span>
+            <button class="copy-code" type="button">Copy</button>
+          </div>
+          <pre><code>import "gopkin/hardware"
+
+mqtt := hardware.NewMQTTClient()
+if err := mqtt.Connect("127.0.0.1:1883", "gopkin-node-1", "", ""); err == nil {
+    defer mqtt.Disconnect()
+
+    _ = mqtt.Subscribe("home/+/status", func(topic string, payload []byte) {
+        // Handle incoming sensor or relay telemetry
+    })
+    _ = mqtt.Publish("home/light1/status", []byte("ON"))
+    _ = mqtt.Ping()
+}</code></pre>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    (function () {
+      const fallbackOrigin = "https://raw.githubusercontent.com/CodersCircle/gopkin/main";
+      const baseOrigin = (window.location.protocol === "file:" || !window.location.origin || window.location.origin === "null")
+        ? fallbackOrigin
+        : window.location.origin;
+
+      const installCommands = {
+        win: { label: "PowerShell", cmd: "irm " + baseOrigin + "/install.ps1 | iex" },
+        unix: { label: "Shell (macOS / Linux / BOSS)", cmd: "curl -fsSL " + baseOrigin + "/install.sh | sh" }
+      };
+
+      const cmdEl = document.getElementById("docs-install-cmd");
+      const lblEl = document.getElementById("docs-install-label");
+      const tabs = document.querySelectorAll("[data-install-tab]");
+
+      function setInstallTab(name) {
+        tabs.forEach(function (t) {
+          t.classList.toggle("active", t.dataset.installTab === name);
+        });
+        const entry = installCommands[name] || installCommands.win;
+        lblEl.textContent = entry.label;
+        cmdEl.textContent = entry.cmd;
+      }
+
+      tabs.forEach(function (t) {
+        t.addEventListener("click", function () { setInstallTab(t.dataset.installTab); });
+      });
+      setInstallTab("win");
+
+      // Copy-code buttons for every code block
+      document.querySelectorAll(".copy-code").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          const code = btn.closest(".code-wrap").querySelector("pre code");
+          if (!code || !navigator.clipboard || !navigator.clipboard.writeText) return;
+          navigator.clipboard.writeText(code.textContent).then(function () {
+            btn.textContent = "Copied!";
+            setTimeout(function () { btn.textContent = "Copy"; }, 1800);
+          });
+        });
+      });
+
+      // Theme toggle
+      const root = document.documentElement;
+      const toggle = document.getElementById("theme-toggle");
+      function applyTheme(theme) {
+        root.setAttribute("data-theme", theme);
+        toggle.textContent = theme === "dark" ? "Light" : "Dark";
+        try { localStorage.setItem("gopkin-theme", theme); } catch (_) {}
+      }
+      let saved = null;
+      try { saved = localStorage.getItem("gopkin-theme"); } catch (_) {}
+      if (saved === "dark" || (!saved && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+        applyTheme("dark");
+      } else {
+        applyTheme("light");
+      }
+      toggle.addEventListener("click", function () {
+        applyTheme(root.getAttribute("data-theme") === "dark" ? "light" : "dark");
+      });
+
+      // Active sidebar highlight on scroll
+      const links = Array.from(document.querySelectorAll(".side-nav a"));
+      const sections = links.map(function (a) { return document.querySelector(a.getAttribute("href")); }).filter(Boolean);
+      window.addEventListener("scroll", function () {
+        let current = sections[0];
+        for (const s of sections) {
+          if (s.getBoundingClientRect().top <= 120) current = s;
+        }
+        links.forEach(function (a) {
+          a.classList.toggle("active", current && a.getAttribute("href") === "#" + current.id);
+        });
+      }, { passive: true });
+    })();
+  </script>
+</body>
+</html>

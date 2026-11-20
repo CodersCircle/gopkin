@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gopkin — One Go Codebase. Every Platform.</title>
-  <meta name="description" content="Pure-Go, zero-CGO, zero-dependency cross-platform UI, Dual-SQL backend, Filament-style CRUD kit, and IoT framework for Windows, macOS, Linux, BOSS Linux, Web, Android, iOS, and IoT.">
+  <meta name="description" content="Pure-Go, zero-CGO, zero-dependency cross-platform UI, Dual-SQL backend, Filament-style CRUD kit, and IoT framework for Android, iOS, Windows, Web, macOS, Linux, BOSS Linux, and IoT (ARM64).">
   <style>
     :root {
       --bg: #ffffff;
@@ -271,6 +271,40 @@
     }
     .card p { font-size: 0.93rem; color: var(--muted); }
 
+    /* Matrix Table */
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--surface-elevated);
+      box-shadow: var(--shadow);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+      text-align: left;
+    }
+    th, td {
+      padding: 13px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      background: var(--surface);
+      font-weight: 700;
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+    }
+    tr:last-child td { border-bottom: none; }
+    td code {
+      background: var(--surface);
+      padding: 2px 6px;
+      border-radius: 5px;
+      font-size: 0.84rem;
+    }
+
     /* Quickstart */
     .code-grid {
       display: grid;
@@ -329,8 +363,7 @@
 <body>
   <header>
     <div class="container nav">
-      <a href="#" class="brand" aria-label="Gopkin Home">
-        <!-- Isometric Gopkin Cube Logo -->
+      <a href="index.html" class="brand" aria-label="Gopkin Home">
         <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
           <polygon points="16,2 29,9.5 16,17 3,9.5" fill="#1B4EF5"/>
           <polygon points="3,9.5 16,17 16,30 3,22.5" fill="#0F172A"/>
@@ -340,8 +373,9 @@
         <span>Gopkin</span>
       </a>
       <nav class="nav-links">
+        <a href="docs.html">Documentation</a>
         <a href="#features" class="hide-sm">Features</a>
-        <a href="#quickstart" class="hide-sm">Quickstart</a>
+        <a href="#platforms" class="hide-sm">Platforms</a>
         <a href="https://github.com/CodersCircle/gopkin" target="_blank" rel="noopener">GitHub</a>
         <button id="theme-toggle" class="theme-btn" type="button" aria-label="Toggle color theme">Dark</button>
       </nav>
@@ -354,33 +388,34 @@
         <div class="pill"><span class="pill-dot"></span> 100% Pure Go &middot; Zero CGO &middot; Zero External Dependencies</div>
         <h1>One Go Codebase.<br><span>Every Platform.</span></h1>
         <p class="subtitle">
-          Build native desktop, web, mobile, BOSS Linux, and IoT applications with 1-liner declarative UI,
-          built-in Dual-SQL storage, Filament-style CRUD kits, and unified hardware &amp; permissions APIs.
+          Build native apps for Android, iOS, Windows, Web, macOS, Linux, BOSS Linux, and IoT (ARM64) with
+          1-liner declarative UI, Dual-SQL storage, Filament-style CRUD kits, and unified permissions.
         </p>
 
         <div class="platforms">
+          <span class="platform-tag highlight">Android</span>
+          <span class="platform-tag highlight">iOS</span>
           <span class="platform-tag">Windows</span>
+          <span class="platform-tag">Web</span>
           <span class="platform-tag">macOS</span>
           <span class="platform-tag">Linux</span>
           <span class="platform-tag highlight">BOSS Linux</span>
-          <span class="platform-tag">Web (Live Canvas)</span>
-          <span class="platform-tag">Android</span>
-          <span class="platform-tag">iOS</span>
           <span class="platform-tag">IoT (ARM64)</span>
         </div>
 
         <div class="cta-row">
-          <a href="#quickstart" class="btn btn-primary">Get Started</a>
-          <a href="https://github.com/CodersCircle/gopkin" target="_blank" rel="noopener" class="btn btn-secondary">View on GitHub</a>
+          <a href="docs.html" class="btn btn-primary">Read Documentation</a>
+          <a href="#quickstart" class="btn btn-secondary">Quickstart</a>
+          <a href="https://github.com/CodersCircle/gopkin" target="_blank" rel="noopener" class="btn btn-secondary">GitHub</a>
         </div>
 
         <div class="install-card">
           <div class="tabs" role="tablist">
-            <button class="tab active" type="button" role="tab" data-tab="unix" aria-selected="true">macOS / Linux / BOSS</button>
-            <button class="tab" type="button" role="tab" data-tab="win" aria-selected="false">Windows PowerShell</button>
+            <button class="tab active" type="button" role="tab" data-tab="win" aria-selected="true">Windows PowerShell</button>
+            <button class="tab" type="button" role="tab" data-tab="unix" aria-selected="false">macOS / Linux / BOSS</button>
           </div>
           <div class="install-body">
-            <code id="install-cmd">curl -fsSL https://raw.githubusercontent.com/CodersCircle/gopkin/main/install.sh | sh</code>
+            <code id="install-cmd"></code>
             <button id="copy-btn" class="copy-btn" type="button">Copy</button>
           </div>
         </div>
@@ -396,7 +431,7 @@
           <article class="card">
             <span class="card-tag">Architecture</span>
             <h3>Zero CGO &amp; Zero Dependencies</h3>
-            <p>Your <code>go.mod</code> stays completely clean. Cross-compile static binaries for Windows, macOS, Linux, BOSS Linux, Web, and Raspberry Pi without C toolchains.</p>
+            <p>Your <code>go.mod</code> stays completely clean. Cross-compile static binaries across mobile, desktop, web, BOSS Linux, and ARM64 IoT without C toolchains.</p>
           </article>
 
           <article class="card">
@@ -432,6 +467,36 @@
       </div>
     </section>
 
+    <section id="platforms">
+      <div class="container">
+        <h2 class="section-title">Platform Target Matrix</h2>
+        <p class="section-sub">One clean <code>gopkin.yaml</code> + <code>app/main.gpk</code> project builds for all 8 targets.</p>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Platform</th>
+                <th>CLI Flag</th>
+                <th>Build Output</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>1</td><td><strong>Android</strong></td><td><code>-t android</code></td><td><code>build/android/</code> (<code>AndroidManifest.xml</code>, <code>app/build.gradle</code>, <code>MainActivity.kt</code>)</td></tr>
+              <tr><td>2</td><td><strong>iOS</strong></td><td><code>-t ios</code></td><td><code>build/ios/</code> (<code>Info.plist</code>, <code>Sources/GopkinApp.swift</code>)</td></tr>
+              <tr><td>3</td><td><strong>Windows</strong></td><td><code>-t windows</code></td><td>Zero-CGO native Win32 GUI (<code>windows/amd64</code>)</td></tr>
+              <tr><td>4</td><td><strong>Web</strong></td><td><code>-t web</code></td><td><code>build/web/index.html</code> + self-contained HiDPI Canvas/SSE server binary</td></tr>
+              <tr><td>5</td><td><strong>macOS</strong></td><td><code>-t darwin</code></td><td>Native Apple Silicon / macOS build (<code>darwin/arm64</code>)</td></tr>
+              <tr><td>6</td><td><strong>Linux</strong></td><td><code>-t linux</code></td><td>Static zero-CGO Linux desktop build (<code>linux/amd64</code>)</td></tr>
+              <tr><td>7</td><td><strong>BOSS Linux</strong></td><td><code>-t boss</code> / <code>-t bos</code></td><td>Static ELF binary + <code>.desktop</code> launcher + <code>DEBIAN/control</code></td></tr>
+              <tr><td>8</td><td><strong>IoT (ARM64)</strong></td><td><code>-t iot</code></td><td>Embedded Linux ARM64 build with sysfs GPIO + MQTT v3.1.1</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
     <section id="quickstart">
       <div class="container">
         <h2 class="section-title">Quickstart in 30 Seconds</h2>
@@ -444,15 +509,18 @@
 gopkin new MyApp
 cd MyApp
 
-<span class="cm"># 2. Run on Desktop or Live Web Target</span>
+<span class="cm"># 2. Run locally (Desktop or Live Web)</span>
 gopkin run
 gopkin run -t web
 
-<span class="cm"># 3. Build for any platform from one codebase</span>
-gopkin build -t boss
-gopkin build -t web
+<span class="cm"># 3. Build for every target in priority order</span>
 gopkin build -t android
 gopkin build -t ios
+gopkin build -t windows
+gopkin build -t web
+gopkin build -t darwin
+gopkin build -t linux
+gopkin build -t boss
 gopkin build -t iot</pre>
           </div>
 
@@ -489,35 +557,42 @@ gopkin build -t iot</pre>
     <div class="container footer-inner">
       <span>&copy; Gopkin &mdash; Pure-Go Cross-Platform Framework (Zero CGO, Zero 3rd-Party Dependencies)</span>
       <div class="footer-links">
+        <a href="docs.html">Documentation</a>
         <a href="https://github.com/CodersCircle/gopkin" target="_blank" rel="noopener">GitHub Repository</a>
-        <a href="#features">Features</a>
-        <a href="#quickstart">Quickstart</a>
+        <a href="#platforms">Platforms</a>
       </div>
     </div>
   </footer>
 
   <script>
     (function () {
+      const fallbackOrigin = "https://raw.githubusercontent.com/CodersCircle/gopkin/main";
+      const baseOrigin = (window.location.protocol === "file:" || !window.location.origin || window.location.origin === "null")
+        ? fallbackOrigin
+        : window.location.origin;
+
       const commands = {
-        unix: "curl -fsSL https://raw.githubusercontent.com/CodersCircle/gopkin/main/install.sh | sh",
-        win: "irm https://raw.githubusercontent.com/CodersCircle/gopkin/main/install.ps1 | iex"
+        win: "irm " + baseOrigin + "/install.ps1 | iex",
+        unix: "curl -fsSL " + baseOrigin + "/install.sh | sh"
       };
       const cmdEl = document.getElementById("install-cmd");
       const copyBtn = document.getElementById("copy-btn");
       const tabs = document.querySelectorAll(".tab");
 
-      tabs.forEach(function (tab) {
-        tab.addEventListener("click", function () {
-          tabs.forEach(function (t) {
-            t.classList.remove("active");
-            t.setAttribute("aria-selected", "false");
-          });
-          tab.classList.add("active");
-          tab.setAttribute("aria-selected", "true");
-          cmdEl.textContent = commands[tab.dataset.tab] || commands.unix;
-          copyBtn.textContent = "Copy";
+      function selectTab(name) {
+        tabs.forEach(function (t) {
+          const active = t.dataset.tab === name;
+          t.classList.toggle("active", active);
+          t.setAttribute("aria-selected", active ? "true" : "false");
         });
+        cmdEl.textContent = commands[name] || commands.win;
+        copyBtn.textContent = "Copy";
+      }
+
+      tabs.forEach(function (tab) {
+        tab.addEventListener("click", function () { selectTab(tab.dataset.tab); });
       });
+      selectTab("win");
 
       copyBtn.addEventListener("click", function () {
         if (navigator.clipboard && navigator.clipboard.writeText) {
