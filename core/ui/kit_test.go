@@ -379,35 +379,34 @@ func TestStarterScreenInteractiveCounterAndThemeToggle(t *testing.T) {
 		texts = append(texts, tc.Text)
 	}
 	joined := strings.Join(texts, " | ")
-	for _, want := range []string{"GOPKIN", "Welcome to MyApp", "Interactive Counter", "Documentation", "Settings", "Dark Mode"} {
+	for _, want := range []string{"GOPKIN", "Welcome to ", "MyApp", "Built with GOPKIN", "Counter", "Documentation"} {
 		if !strings.Contains(joined, want) {
 			t.Errorf("StarterScreen render missing %q (got: %s)", want, joined)
 		}
 	}
 
-	// Click "+" button (centered contentX=120, contentW=560, btnY=56+92+104=252, incBtn is middle button around X=400).
-	if !screen.HandleEvent(platform.Event{Type: platform.EventClick, X: 400, Y: 270}) || screen.Count() != 1 {
+	// Centered buttons at W=800 (centerX=400), cardY=52+178=230, cardH=146, btnY=230+146-34-18=324.
+	// decBtn X: 307..361, incBtn X: 373..427, resetBtn X: 439..493.
+	if !screen.HandleEvent(platform.Event{Type: platform.EventClick, X: 400, Y: 340}) || screen.Count() != 1 {
 		t.Fatalf("expected click on + to increment count to 1, got %d", screen.Count())
 	}
-	// Click "-" button (left button around X=200).
-	if !screen.HandleEvent(platform.Event{Type: platform.EventClick, X: 200, Y: 270}) || screen.Count() != 0 {
+	if !screen.HandleEvent(platform.Event{Type: platform.EventClick, X: 334, Y: 340}) || screen.Count() != 0 {
 		t.Fatalf("expected click on - to decrement count to 0, got %d", screen.Count())
 	}
-	// Increment twice then click "Refresh" button (right button around X=580).
-	screen.HandleEvent(platform.Event{Type: platform.EventClick, X: 400, Y: 270})
-	screen.HandleEvent(platform.Event{Type: platform.EventClick, X: 400, Y: 270})
+	screen.HandleEvent(platform.Event{Type: platform.EventClick, X: 400, Y: 340})
+	screen.HandleEvent(platform.Event{Type: platform.EventClick, X: 400, Y: 340})
 	if screen.Count() != 2 {
 		t.Fatalf("expected count 2, got %d", screen.Count())
 	}
-	if !screen.HandleEvent(platform.Event{Type: platform.EventClick, X: 580, Y: 270}) || screen.Count() != 0 {
+	if !screen.HandleEvent(platform.Event{Type: platform.EventClick, X: 466, Y: 340}) || screen.Count() != 0 {
 		t.Fatalf("expected click on Refresh to reset count to 0, got %d", screen.Count())
 	}
 
-	// Click Dark/Light theme toggle button (top right: X=800-112-20+10=678, Y=24).
-	if !screen.HandleEvent(platform.Event{Type: platform.EventClick, X: 700, Y: 24}) || !screen.IsDark() {
+	// Theme pill toggle at top right: X=800-48-24=728..776, Y=12..40.
+	if !screen.HandleEvent(platform.Event{Type: platform.EventClick, X: 750, Y: 26}) || !screen.IsDark() {
 		t.Fatalf("expected click on theme toggle to enable dark mode")
 	}
-	if !screen.HandleEvent(platform.Event{Type: platform.EventClick, X: 700, Y: 24}) || screen.IsDark() {
+	if !screen.HandleEvent(platform.Event{Type: platform.EventClick, X: 750, Y: 26}) || screen.IsDark() {
 		t.Fatalf("expected second click on theme toggle to return to light mode")
 	}
 }

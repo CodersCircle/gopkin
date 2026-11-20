@@ -12,11 +12,13 @@ import (
 	"unsafe"
 )
 
-// Win32 message and virtual-key constants.
+// Win32 message, virtual-key, and GDI constants.
 const (
 	wmDestroy     = 0x0002
 	wmSize        = 0x0005
+	wmPaint       = 0x000F
 	wmClose       = 0x0010
+	wmEraseBkgnd  = 0x0014
 	wmKeyDown     = 0x0100
 	wmKeyUp       = 0x0101
 	wmChar        = 0x0102
@@ -47,6 +49,17 @@ const (
 	csVRedraw          = 0x0001
 	csDblClks          = 0x0008
 	transparentBkMode  = 1
+	srccopy            = 0x00CC0020
+	psSolid            = 0
+	psNull             = 5
+	fwNormal           = 400
+	fwSemiBold         = 600
+	fwBold             = 700
+	defaultCharset     = 1
+	outDefaultPrecis   = 0
+	clipDefaultPrecis  = 0
+	cleartypeQuality   = 5
+	defaultPitch       = 0
 )
 
 var (
@@ -65,13 +78,27 @@ var (
 	procPostQuitMessage  = user32.NewProc("PostQuitMessage")
 	procGetDC            = user32.NewProc("GetDC")
 	procReleaseDC        = user32.NewProc("ReleaseDC")
+	procBeginPaint       = user32.NewProc("BeginPaint")
+	procEndPaint         = user32.NewProc("EndPaint")
+	procGetClientRect    = user32.NewProc("GetClientRect")
 	procFillRect         = user32.NewProc("FillRect")
 	procGetKeyState      = user32.NewProc("GetKeyState")
-	procCreateSolidBrush = gdi32.NewProc("CreateSolidBrush")
-	procDeleteObject     = gdi32.NewProc("DeleteObject")
-	procSetBkMode        = gdi32.NewProc("SetBkMode")
-	procSetTextColor     = gdi32.NewProc("SetTextColor")
-	procTextOutW         = gdi32.NewProc("TextOutW")
+
+	procCreateCompatibleDC     = gdi32.NewProc("CreateCompatibleDC")
+	procCreateCompatibleBitmap = gdi32.NewProc("CreateCompatibleBitmap")
+	procSelectObject           = gdi32.NewProc("SelectObject")
+	procDeleteObject           = gdi32.NewProc("DeleteObject")
+	procDeleteDC               = gdi32.NewProc("DeleteDC")
+	procBitBlt                 = gdi32.NewProc("BitBlt")
+	procCreateSolidBrush       = gdi32.NewProc("CreateSolidBrush")
+	procCreatePen              = gdi32.NewProc("CreatePen")
+	procRoundRect              = gdi32.NewProc("RoundRect")
+	procMoveToEx               = gdi32.NewProc("MoveToEx")
+	procLineTo                 = gdi32.NewProc("LineTo")
+	procCreateFontW            = gdi32.NewProc("CreateFontW")
+	procSetBkMode              = gdi32.NewProc("SetBkMode")
+	procSetTextColor           = gdi32.NewProc("SetTextColor")
+	procTextOutW               = gdi32.NewProc("TextOutW")
 )
 
 type wndClassExW struct {
@@ -106,11 +133,25 @@ type winRect struct {
 	left, top, right, bottom int32
 }
 
-// Win32Driver is a zero-CGO Pure-Go Windows GUI Driver using user32/gdi32 syscalls.
+type paintStruct struct {
+	hdc         syscall.Handle
+	fErase      int32
+	rcPaint     winRect
+	fRestore    int32
+	fIncUpdate  int32
+	rgbReserved [32]byte
+}
+
+// Win32Driver is a zero-CGO Pure-Go Windows GUI Driver using true offscreen
+// GDI double buffering (memDC + memBmp + atomic BitBlt) for zero-flicker rendering.
 type Win32Driver struct {
 	mu            sync.Mutex
 	hwnd          syscall.Handle
-	hdc           syscall.Handle
+	memDC         syscall.Handle
+	memBmp        syscall.Handle
+	oldBmp        syscall.Handle
+	bufW          int32
+	bufH          int32
 	events        []Event
 	quit          bool
 	highSurrogate rune
@@ -126,13 +167,14 @@ func NewWin32Driver() *Win32Driver {
 	return &Win32Driver{}
 }
 
-// Init prepares the Win32 driver.
+// Init prepares the Win32 driver on the calling OS thread.
 func (w *Win32Driver) Init() error {
 	runtime.LockOSThread()
 	return nil
 }
 
-// CreateWindow registers the Gopkin window class and creates a native Win32 window.
+// CreateWindow registers the Gopkin window class (with HbrBackground = 0 to
+// prevent flicker) and creates a native Win32 window.
 func (w *Win32Driver) CreateWindow(title string, width, height int) error {
 	hInst, _, _ := procGetModuleHandleW.Call(0)
 	className, err := syscall.UTF16PtrFromString("GopkinWindowClass")
@@ -149,6 +191,7 @@ func (w *Win32Driver) CreateWindow(title string, width, height int) error {
 		style:         csHRedraw | csVRedraw | csDblClks,
 		lpfnWndProc:   syscall.NewCallback(gopkinWndProc),
 		hInstance:     syscall.Handle(hInst),
+		hbrBackground: 0, // No automatic background brush — prevents erase flashes.
 		lpszClassName: className,
 	}
 	procRegisterClassExW.Call(uintptr(unsafe.Pointer(&wc)))
@@ -171,14 +214,91 @@ func (w *Win32Driver) CreateWindow(title string, width, height int) error {
 	win32Instances[w.hwnd] = w
 	win32InstancesMu.Unlock()
 
+	w.ensureBackBuffer(int32(width), int32(height))
+
 	procShowWindow.Call(hwnd, swShow)
 	procUpdateWindow.Call(hwnd)
 	return nil
 }
 
-// DrawRect fills a solid rectangle on the window's device context.
-func (w *Win32Driver) DrawRect(x, y, width, height float32, color Color) {
-	if w.hdc == 0 {
+// ensureBackBuffer creates or resizes the persistent offscreen memDC and memBmp
+// strictly when the window dimensions change, releasing previous GDI handles.
+func (w *Win32Driver) ensureBackBuffer(width, height int32) {
+	if width <= 0 || height <= 0 || w.hwnd == 0 {
+		return
+	}
+	if w.memDC != 0 && w.memBmp != 0 && w.bufW == width && w.bufH == height {
+		return
+	}
+
+	w.destroyBackBuffer()
+
+	winDC, _, _ := procGetDC.Call(uintptr(w.hwnd))
+	if winDC == 0 {
+		return
+	}
+	defer procReleaseDC.Call(uintptr(w.hwnd), winDC)
+
+	memDC, _, _ := procCreateCompatibleDC.Call(winDC)
+	if memDC == 0 {
+		return
+	}
+	memBmp, _, _ := procCreateCompatibleBitmap.Call(winDC, uintptr(width), uintptr(height))
+	if memBmp == 0 {
+		procDeleteDC.Call(memDC)
+		return
+	}
+	oldBmp, _, _ := procSelectObject.Call(memDC, memBmp)
+
+	w.memDC = syscall.Handle(memDC)
+	w.memBmp = syscall.Handle(memBmp)
+	w.oldBmp = syscall.Handle(oldBmp)
+	w.bufW = width
+	w.bufH = height
+}
+
+func (w *Win32Driver) destroyBackBuffer() {
+	if w.memDC != 0 {
+		if w.oldBmp != 0 {
+			procSelectObject.Call(uintptr(w.memDC), uintptr(w.oldBmp))
+			w.oldBmp = 0
+		}
+		if w.memBmp != 0 {
+			procDeleteObject.Call(uintptr(w.memBmp))
+			w.memBmp = 0
+		}
+		procDeleteDC.Call(uintptr(w.memDC))
+		w.memDC = 0
+	}
+	w.bufW = 0
+	w.bufH = 0
+}
+
+// Close releases all offscreen GDI resources cleanly.
+func (w *Win32Driver) Close() error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.destroyBackBuffer()
+	if w.hwnd != 0 {
+		win32InstancesMu.Lock()
+		delete(win32Instances, w.hwnd)
+		win32InstancesMu.Unlock()
+		w.hwnd = 0
+	}
+	return nil
+}
+
+// Clear fills the entire offscreen buffer with color.
+func (w *Win32Driver) Clear(color Color) {
+	if w.memDC == 0 {
+		return
+	}
+	w.FillRect(0, 0, float32(w.bufW), float32(w.bufH), color)
+}
+
+// FillRect draws a solid filled rectangle strictly onto the offscreen memDC.
+func (w *Win32Driver) FillRect(x, y, width, height float32, color Color) {
+	if w.memDC == 0 || width <= 0 || height <= 0 {
 		return
 	}
 	colorRef := uintptr(color.R) | uintptr(color.G)<<8 | uintptr(color.B)<<16
@@ -194,28 +314,142 @@ func (w *Win32Driver) DrawRect(x, y, width, height float32, color Color) {
 		right:  int32(x + width),
 		bottom: int32(y + height),
 	}
-	procFillRect.Call(uintptr(w.hdc), uintptr(unsafe.Pointer(&r)), brush)
+	procFillRect.Call(uintptr(w.memDC), uintptr(unsafe.Pointer(&r)), brush)
 }
 
-// DrawText renders UTF-16 text on the window's device context.
-func (w *Win32Driver) DrawText(x, y float32, text string, _ float32, color Color) {
-	if w.hdc == 0 || text == "" {
+// DrawRect implements Driver.DrawRect by drawing onto the offscreen memDC.
+func (w *Win32Driver) DrawRect(x, y, width, height float32, color Color) {
+	w.FillRect(x, y, width, height, color)
+}
+
+// DrawRoundedRect draws a solid filled rounded rectangle strictly onto memDC.
+func (w *Win32Driver) DrawRoundedRect(x, y, width, height, radius float32, color Color) {
+	if w.memDC == 0 || width <= 0 || height <= 0 {
+		return
+	}
+	colorRef := uintptr(color.R) | uintptr(color.G)<<8 | uintptr(color.B)<<16
+	brush, _, _ := procCreateSolidBrush.Call(colorRef)
+	if brush == 0 {
+		return
+	}
+	defer procDeleteObject.Call(brush)
+
+	nullPen, _, _ := procCreatePen.Call(psNull, 0, 0)
+	defer procDeleteObject.Call(nullPen)
+
+	oldBrush, _, _ := procSelectObject.Call(uintptr(w.memDC), brush)
+	oldPen, _, _ := procSelectObject.Call(uintptr(w.memDC), nullPen)
+
+	diam := int32(radius * 2)
+	procRoundRect.Call(
+		uintptr(w.memDC),
+		uintptr(int32(x)),
+		uintptr(int32(y)),
+		uintptr(int32(x+width+1)),
+		uintptr(int32(y+height+1)),
+		uintptr(diam),
+		uintptr(diam),
+	)
+
+	procSelectObject.Call(uintptr(w.memDC), oldBrush)
+	procSelectObject.Call(uintptr(w.memDC), oldPen)
+}
+
+// DrawPolyline strokes a multi-segment polyline strictly onto memDC.
+func (w *Win32Driver) DrawPolyline(points []Point, lineWidth float32, color Color) {
+	if w.memDC == 0 || len(points) < 2 {
+		return
+	}
+	lw := int32(lineWidth)
+	if lw < 1 {
+		lw = 1
+	}
+	colorRef := uintptr(color.R) | uintptr(color.G)<<8 | uintptr(color.B)<<16
+	pen, _, _ := procCreatePen.Call(psSolid, uintptr(lw), colorRef)
+	if pen == 0 {
+		return
+	}
+	defer procDeleteObject.Call(pen)
+
+	oldPen, _, _ := procSelectObject.Call(uintptr(w.memDC), pen)
+	procMoveToEx.Call(uintptr(w.memDC), uintptr(int32(points[0].X)), uintptr(int32(points[0].Y)), 0)
+	for i := 1; i < len(points); i++ {
+		procLineTo.Call(uintptr(w.memDC), uintptr(int32(points[i].X)), uintptr(int32(points[i].Y)))
+	}
+	procSelectObject.Call(uintptr(w.memDC), oldPen)
+}
+
+// DrawText renders ClearType UTF-16 text strictly onto memDC using Segoe UI scaled to size.
+func (w *Win32Driver) DrawText(x, y float32, text string, size float32, color Color) {
+	if w.memDC == 0 || text == "" {
 		return
 	}
 	u16 := utf16.Encode([]rune(text))
 	if len(u16) == 0 {
 		return
 	}
+
+	if size <= 0 {
+		size = 14
+	}
+	weight := uintptr(fwNormal)
+	if size >= 22 {
+		weight = fwBold
+	} else if size >= 15 {
+		weight = fwSemiBold
+	}
+
+	face, _ := syscall.UTF16PtrFromString("Segoe UI")
+	fontHeight := -int32(size * 1.15)
+	font, _, _ := procCreateFontW.Call(
+		uintptr(fontHeight), // cHeight
+		0,                   // cWidth
+		0, 0,                // escapement, orientation
+		weight,
+		0, 0, 0, // italic, underline, strikeout
+		defaultCharset,
+		outDefaultPrecis,
+		clipDefaultPrecis,
+		cleartypeQuality,
+		defaultPitch,
+		uintptr(unsafe.Pointer(face)),
+	)
+
+	var oldFont uintptr
+	if font != 0 {
+		oldFont, _, _ = procSelectObject.Call(uintptr(w.memDC), font)
+		defer func() {
+			procSelectObject.Call(uintptr(w.memDC), oldFont)
+			procDeleteObject.Call(font)
+		}()
+	}
+
 	colorRef := uintptr(color.R) | uintptr(color.G)<<8 | uintptr(color.B)<<16
-	procSetBkMode.Call(uintptr(w.hdc), transparentBkMode)
-	procSetTextColor.Call(uintptr(w.hdc), colorRef)
+	procSetBkMode.Call(uintptr(w.memDC), transparentBkMode)
+	procSetTextColor.Call(uintptr(w.memDC), colorRef)
 	procTextOutW.Call(
-		uintptr(w.hdc),
+		uintptr(w.memDC),
 		uintptr(int32(x)),
 		uintptr(int32(y)),
 		uintptr(unsafe.Pointer(&u16[0])),
 		uintptr(len(u16)),
 	)
+}
+
+// Present atomically blits the completed offscreen memDC frame onto the live window DC.
+func (w *Win32Driver) Present() {
+	if w.hwnd == 0 || w.memDC == 0 || w.bufW <= 0 || w.bufH <= 0 {
+		return
+	}
+	hdc, _, _ := procGetDC.Call(uintptr(w.hwnd))
+	if hdc == 0 {
+		return
+	}
+	procBitBlt.Call(
+		hdc, 0, 0, uintptr(w.bufW), uintptr(w.bufH),
+		uintptr(w.memDC), 0, 0, srccopy,
+	)
+	procReleaseDC.Call(uintptr(w.hwnd), hdc)
 }
 
 // PollEvents returns and clears all queued Win32 input and window events.
@@ -231,13 +465,16 @@ func (w *Win32Driver) PollEvents() []Event {
 	return out
 }
 
-// RunLoop pumps Win32 messages and invokes onFrame until quit or onFrame returns false.
+// RunLoop pumps Win32 messages, renders each frame into memDC, and presents via
+// atomic BitBlt until the window closes or onFrame returns false.
 func (w *Win32Driver) RunLoop(onFrame func() bool) error {
 	if w.hwnd == 0 {
 		return errors.New("platform/win32: window not created")
 	}
+	defer w.Close()
 
 	var msg winMsg
+	var rc winRect
 	for {
 		for {
 			ret, _, _ := procPeekMessageW.Call(
@@ -251,16 +488,20 @@ func (w *Win32Driver) RunLoop(onFrame func() bool) error {
 			procDispatchMessageW.Call(uintptr(unsafe.Pointer(&msg)))
 		}
 
-		hdc, _, _ := procGetDC.Call(uintptr(w.hwnd))
-		w.hdc = syscall.Handle(hdc)
+		// Keep back buffer synchronized with actual client area dimensions.
+		if ret, _, _ := procGetClientRect.Call(uintptr(w.hwnd), uintptr(unsafe.Pointer(&rc))); ret != 0 {
+			cw := rc.right - rc.left
+			ch := rc.bottom - rc.top
+			if cw > 0 && ch > 0 {
+				w.ensureBackBuffer(cw, ch)
+			}
+		}
+
 		keepRunning := true
 		if onFrame != nil {
 			keepRunning = onFrame()
 		}
-		if hdc != 0 {
-			procReleaseDC.Call(uintptr(w.hwnd), hdc)
-			w.hdc = 0
-		}
+		w.Present()
 
 		w.mu.Lock()
 		shouldQuit := w.quit
@@ -320,6 +561,22 @@ func gopkinWndProc(hwnd syscall.Handle, msg uint32, wParam, lParam uintptr) uint
 
 	if drv != nil {
 		switch msg {
+		case wmEraseBkgnd:
+			// Return 1 immediately so Windows never flashes/erases background between frames.
+			return 1
+
+		case wmPaint:
+			var ps paintStruct
+			hdc, _, _ := procBeginPaint.Call(uintptr(hwnd), uintptr(unsafe.Pointer(&ps)))
+			if hdc != 0 && drv.memDC != 0 && drv.bufW > 0 && drv.bufH > 0 {
+				procBitBlt.Call(
+					hdc, 0, 0, uintptr(drv.bufW), uintptr(drv.bufH),
+					uintptr(drv.memDC), 0, 0, srccopy,
+				)
+			}
+			procEndPaint.Call(uintptr(hwnd), uintptr(unsafe.Pointer(&ps)))
+			return 0
+
 		case wmClose, wmDestroy:
 			drv.mu.Lock()
 			drv.quit = true
@@ -327,32 +584,41 @@ func gopkinWndProc(hwnd syscall.Handle, msg uint32, wParam, lParam uintptr) uint
 			drv.mu.Unlock()
 			procPostQuitMessage.Call(0)
 			return 0
+
 		case wmSize:
 			width := int(lParam & 0xFFFF)
 			height := int((lParam >> 16) & 0xFFFF)
-			drv.pushEvent(Event{Type: EventResize, Width: width, Height: height})
+			if width > 0 && height > 0 {
+				drv.ensureBackBuffer(int32(width), int32(height))
+				drv.pushEvent(Event{Type: EventResize, Width: width, Height: height})
+			}
 			return 0
+
 		case wmLButtonDown:
 			x := float32(int16(lParam & 0xFFFF))
 			y := float32(int16((lParam >> 16) & 0xFFFF))
 			drv.pushEvent(Event{Type: EventMouseDown, X: x, Y: y})
 			return 0
+
 		case wmLButtonUp:
 			x := float32(int16(lParam & 0xFFFF))
 			y := float32(int16((lParam >> 16) & 0xFFFF))
 			drv.pushEvent(Event{Type: EventMouseUp, X: x, Y: y})
 			drv.pushEvent(Event{Type: EventClick, X: x, Y: y})
 			return 0
+
 		case wmLButtonDbl:
 			x := float32(int16(lParam & 0xFFFF))
 			y := float32(int16((lParam >> 16) & 0xFFFF))
 			drv.pushEvent(Event{Type: EventDoubleClick, X: x, Y: y})
 			return 0
+
 		case wmMouseMove:
 			x := float32(int16(lParam & 0xFFFF))
 			y := float32(int16((lParam >> 16) & 0xFFFF))
 			drv.pushEvent(Event{Type: EventMouseMove, X: x, Y: y})
 			return 0
+
 		case wmKeyDown:
 			if key := mapWin32Key(wParam); key != "" {
 				drv.pushEvent(Event{
@@ -362,6 +628,7 @@ func gopkinWndProc(hwnd syscall.Handle, msg uint32, wParam, lParam uintptr) uint
 				})
 			}
 			return 0
+
 		case wmKeyUp:
 			if key := mapWin32Key(wParam); key != "" {
 				drv.pushEvent(Event{
@@ -371,9 +638,9 @@ func gopkinWndProc(hwnd syscall.Handle, msg uint32, wParam, lParam uintptr) uint
 				})
 			}
 			return 0
+
 		case wmChar:
 			r := rune(wParam)
-			// Handle UTF-16 surrogate pairs for non-BMP Unicode characters.
 			if r >= 0xD800 && r <= 0xDBFF {
 				drv.highSurrogate = r
 				return 0
@@ -384,7 +651,6 @@ func gopkinWndProc(hwnd syscall.Handle, msg uint32, wParam, lParam uintptr) uint
 			} else {
 				drv.highSurrogate = 0
 			}
-			// Filter ASCII control characters (Backspace, Tab, Enter, Escape are handled via WM_KEYDOWN).
 			if r >= 0x20 && r != 0x7F {
 				drv.pushEvent(Event{
 					Type: EventChar,
